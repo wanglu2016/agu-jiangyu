@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>A股疆域图 · 使用讲解</title>
+<meta name="description" content="4分钟看懂A股疆域图：怎么读地图、拖动时间轴、查一家公司、找已退市的公司、看幸存者偏差。">
+<meta property="og:image" content="assets/video-poster.jpg">
+<meta name="theme-color" content="#dde6e2">
+<link rel="icon" href="assets/icon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="assets/fonts/fonts.css">
+<style>
+:root {
+  --sea: #dde6e2; --panel: #f6f4ee; --line: rgba(40, 52, 48, 0.16);
+  --fg: #1c2522; --fg-2: #4b5853; --fg-3: #7b8781; --gold: #8f6418; --cinnabar: #b8432b; --malachite: #2f7a63;
+  --serif: "Noto Serif SC", "Songti SC", "STSong", serif;
+  --sans: "Noto Sans SC", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root { --sea: #0d1a20; --panel: #111e24; --line: rgba(210, 225, 215, 0.14); --fg: #ebe6d6; --fg-2: #b6bdb4; --fg-3: #7f8b86; --gold: #d8b66c; --cinnabar: #e2694c; --malachite: #79b9a0; color-scheme: dark; }
+}
+body { margin: 0; background: var(--sea); color: var(--fg); font-family: var(--sans); -webkit-font-smoothing: antialiased; }
+main { max-width: 1080px; margin: 0 auto; padding-block: max(28px, env(safe-area-inset-top, 0px)) 40px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+header { display: flex; align-items: center; gap: 14px; }
+header img { width: 46px; height: 46px; flex: none; }
+h1 { margin: 0; font-family: var(--serif); font-weight: 900; font-size: clamp(24px, 4vw, 32px); letter-spacing: .12em; }
+header p { margin: 4px 0 0; color: var(--fg-3); font-size: 13px; letter-spacing: .08em; }
+.player { margin-top: 24px; border-radius: 14px; overflow: hidden; border: 1px solid var(--line); background: #000; aspect-ratio: 16 / 9; }
+video { display: block; width: 100%; height: 100%; }
+.actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 18px; }
+.btn { display: inline-flex; align-items: center; gap: 8px; height: 44px; padding: 0 18px; border-radius: 10px; text-decoration: none; font-size: 15px; letter-spacing: .04em; border: 1px solid var(--line); color: var(--fg); background: var(--panel); }
+.btn.primary { background: var(--cinnabar); color: #fff; border-color: var(--cinnabar); font-weight: 700; }
+.btn:hover { border-color: var(--cinnabar); }
+.btn:focus-visible { outline: 2px solid var(--gold); outline-offset: 3px; }
+section { margin-top: 30px; padding-top: 22px; border-top: 1px solid var(--line); }
+h2 { margin: 0 0 12px; font-family: var(--serif); font-size: 18px; font-weight: 900; letter-spacing: .1em; }
+ol { margin: 0; padding-left: 1.4em; color: var(--fg-2); line-height: 1.9; font-size: 14.5px; max-width: 46em; }
+ol b { color: var(--fg); font-weight: 500; }
+.note { margin-top: 16px; color: var(--fg-3); font-size: 12.5px; line-height: 1.8; max-width: 52em; }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <img src="assets/icon.svg" alt="">
+    <div>
+      <h1>A股疆域图 · 使用讲解</h1>
+      <p>4分38秒 · 1080p · 中文配音与字幕</p>
+    </div>
+  </header>
+  <div class="player">
+    <video controls preload="metadata" playsinline poster="assets/video-poster.jpg" src="video/agu-jiangyu-guide.mp4">
+      你的浏览器不能直接播放这个视频，请用下方按钮下载后观看。
+    </video>
+  </div>
+  <div class="actions">
+    <a class="btn primary" href="index.html">打开地图</a>
+    <a class="btn" href="video/agu-jiangyu-guide.mp4" download="A股疆域图_使用讲解.mp4">下载视频（46 MB）</a>
+    <a class="btn" href="download/agu-jiangyu-site.zip" download>下载离线版网页（4.8 MB）</a>
+  </div>
+  <section>
+    <h2>视频里讲了什么</h2>
+    <ol>
+      <li><b>一张会动的地图：</b>行业是国，公司是城，面积是市值；市值等于股价乘以总股本。</li>
+      <li><b>看懂地图：</b>行业的颜色、国名下的份额、大公司单独成城、浅色小块是较小的公司，以及怎么放大。</li>
+      <li><b>让版图动起来：</b>时间轴本身是一张年表；从2000年播到2026年，看银行、石油石化、白酒医药、新能源、芯片算力先后扩张。</li>
+      <li><b>此时：</b>十段时代解说，以及每月市值前十。</li>
+      <li><b>查一家公司：</b>悬停看市值和排名，点开看市值曲线和行业归属的变迁。</li>
+      <li><b>找一家公司：</b>名称、曾用名、代码都能搜，已退市的公司也在。</li>
+      <li><b>幸存者偏差：</b>标出日后退市的公司，看它们当时占了多大版图。</li>
+      <li><b>诸国：</b>三十个行业各自的份额曲线。</li>
+      <li><b>资料与边界：</b>数据从哪里来、怎么算、哪里不准。</li>
+    </ol>
+    <p class="note">配音为离线语音合成的女声，背景音乐为程序生成。画面录自本网页的实际操作。视频与网页都不构成投资建议。</p>
+  </section>
+</main>
+</body>
+</html>

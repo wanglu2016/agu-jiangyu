@@ -1,0 +1,906 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>A股疆域图</title>
+<meta name="description" content="一张会动的A股地图：2000年至2026年沪深两市5,555家公司（含已退市的338家）按行业划分的市值版图。行业是国，公司是城，面积是市值。">
+<meta property="og:title" content="A股疆域图 · 一张会动的A股地图">
+<meta property="og:description" content="拖动时间轴，看银行、石油石化、白酒、新能源、半导体、AI算力的版图怎么扩张、收缩。2000–2026。">
+<meta property="og:image" content="assets/preview.jpg">
+<meta name="theme-color" content="#dde6e2">
+<link rel="icon" href="assets/icon.svg" type="image/svg+xml">
+<style>html,body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
+<link rel="stylesheet" href="assets/fonts/fonts.css">
+<style>
+/* Layout: 一张"股海舆图"——行业是国、公司是城，地图占满左侧，右侧是可翻页的说明栏，时间轴是一条按行业分层的年表。 */
+:root {
+  --sea: #dde6e2;          /* 浅海：日间底色 */
+  --sea-line: rgba(54, 92, 86, 0.16);
+  --land-shadow: rgba(30, 50, 46, 0.22);
+  --panel: #f6f4ee;
+  --panel-2: #ece9e0;
+  --line: rgba(40, 52, 48, 0.14);
+  --line-2: rgba(40, 52, 48, 0.26);
+  --fg: #1c2522;
+  --fg-2: #4b5853;
+  --fg-3: #7b8781;
+  --gold: #8f6418;         /* 泥金：当前年份、选中 */
+  --cinnabar: #b8432b;     /* 朱砂：退市标记 */
+  --malachite: #2f7a63;    /* 石绿：可操作 */
+  --halo: rgba(246, 244, 238, 0.92);
+  --tip: rgba(28, 37, 34, 0.94);
+  --tip-fg: #f3efe4;
+  --serif: "Noto Serif SC", "Source Han Serif SC", "Songti SC", "STSong", serif;
+  --sans: "Noto Sans SC", "Source Han Sans SC", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+  --panel-w: 372px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --sea: #0d1a20; --sea-line: rgba(140, 190, 180, 0.10); --land-shadow: rgba(0, 0, 0, 0.55);
+    --panel: #111e24; --panel-2: #172830; --line: rgba(210, 225, 215, 0.10); --line-2: rgba(210, 225, 215, 0.22);
+    --fg: #ebe6d6; --fg-2: #b6bdb4; --fg-3: #7f8b86; --gold: #d8b66c; --cinnabar: #e2694c; --malachite: #79b9a0;
+    --halo: rgba(13, 26, 32, 0.9); --tip: rgba(236, 231, 216, 0.96); --tip-fg: #14211f; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --sea: #0d1a20; --sea-line: rgba(140, 190, 180, 0.10); --land-shadow: rgba(0, 0, 0, 0.55);
+  --panel: #111e24; --panel-2: #172830; --line: rgba(210, 225, 215, 0.10); --line-2: rgba(210, 225, 215, 0.22);
+  --fg: #ebe6d6; --fg-2: #b6bdb4; --fg-3: #7f8b86; --gold: #d8b66c; --cinnabar: #e2694c; --malachite: #79b9a0;
+  --halo: rgba(13, 26, 32, 0.9); --tip: rgba(236, 231, 216, 0.96); --tip-fg: #14211f; color-scheme: dark;
+}
+html, body { height: 100%; }
+body { background: var(--sea); color: var(--fg); font-family: var(--sans); font-size: 14px; -webkit-font-smoothing: antialiased; overflow: hidden; }
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--sea); }
+button, input { font: inherit; color: inherit; }
+button { cursor: pointer; }
+:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+.num { font-variant-numeric: tabular-nums; }
+
+#app { position: fixed; inset: env(safe-area-inset-top, 0px) 0 env(safe-area-inset-bottom, 0px) 0; display: grid; grid-template-columns: minmax(0, 1fr) var(--panel-w); grid-template-rows: minmax(0, 1fr) auto; }
+#stage { position: relative; grid-column: 1; grid-row: 1; min-width: 0; min-height: 0; overflow: hidden; }
+#map { position: absolute; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; cursor: grab; }
+#map.dragging { cursor: grabbing; }
+
+/* 左上：图名与年月 */
+#plate { position: absolute; left: max(18px, env(safe-area-inset-left, 0px)); top: 14px; pointer-events: none; max-width: min(520px, 70%); }
+#plate .kicker { font-family: var(--serif); font-weight: 600; font-size: 13px; letter-spacing: 0.32em; color: var(--fg-2); }
+#plate .when { font-family: var(--serif); font-weight: 900; font-size: clamp(30px, 4.2vw, 50px); line-height: 1.08; color: var(--fg); letter-spacing: 0.04em; margin-top: 2px; text-shadow: 0 0 10px var(--halo), 0 0 3px var(--halo); }
+#plate .when small { font-size: 0.5em; font-weight: 600; letter-spacing: 0.08em; color: var(--fg-2); margin-left: 6px; }
+#plate .sum { margin-top: 6px; font-size: 13px; color: var(--fg-2); text-shadow: 0 0 6px var(--halo); }
+#plate .sum b { color: var(--fg); font-weight: 700; }
+#plate.boxed { background: var(--panel); padding: 8px 12px 9px; border-radius: 10px; border: 1px solid var(--line); box-shadow: 0 2px 12px rgba(0,0,0,.12); }
+#plate .legend { margin-top: 4px; font-size: 11.5px; color: var(--fg-3); text-shadow: 0 0 6px var(--halo); }
+.hatchkey { display: inline-block; width: 11px; height: 11px; margin: 0 4px -1px 0; border: 1px solid var(--line-2); background: repeating-linear-gradient(135deg, var(--fg-3) 0 1px, transparent 1px 4px); }
+
+/* 右上：图层开关 */
+#tools { position: absolute; right: max(14px, env(safe-area-inset-right, 0px)); top: 14px; display: flex; flex-direction: column; gap: 8px; align-items: flex-end; }
+.chipbtn { display: inline-flex; align-items: center; gap: 7px; padding: 6px 11px; border-radius: 999px; border: 1px solid var(--line-2); background: var(--panel); color: var(--fg-2); font-size: 12.5px; box-shadow: 0 1px 6px rgba(0,0,0,.08); }
+.chipbtn[aria-pressed="true"] { color: var(--fg); border-color: var(--cinnabar); }
+.chipbtn .dot { width: 10px; height: 10px; border-radius: 3px; border: 1.5px dashed var(--cinnabar); }
+.zoombox { display: flex; border: 1px solid var(--line-2); border-radius: 10px; overflow: hidden; background: var(--panel); }
+.zoombox button { width: 34px; height: 32px; border: 0; background: transparent; color: var(--fg-2); font-size: 17px; }
+.zoombox button + button { border-left: 1px solid var(--line); }
+#tgDelist { position: absolute; right: 14px; top: 58px; }
+#survivor { position: absolute; right: 14px; top: 100px; max-width: 250px; padding: 9px 12px; border-radius: 10px; background: var(--panel); border: 1px solid var(--line); font-size: 12.5px; line-height: 1.55; color: var(--fg-2); box-shadow: 0 2px 10px rgba(0,0,0,.08); }
+#survivor b { color: var(--cinnabar); font-weight: 700; }
+
+/* 悬停提示 */
+#tip { position: absolute; z-index: 5; pointer-events: none; background: var(--tip); color: var(--tip-fg); padding: 8px 11px; border-radius: 9px; font-size: 12.5px; line-height: 1.5; max-width: 260px; box-shadow: 0 6px 22px rgba(0,0,0,.25); transform: translate(12px, 12px); }
+#tip .t { font-weight: 700; font-size: 14px; }
+#tip .s { opacity: .8; }
+#tip .e { color: #e9a07f; }
+
+/* 时间轴 */
+#timebar { grid-column: 1; grid-row: 2; background: var(--panel); border-top: 1px solid var(--line); padding: 8px max(16px, env(safe-area-inset-right, 0px)) 10px max(16px, env(safe-area-inset-left, 0px)); display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 12px; align-items: center; }
+#playbox { display: flex; flex-direction: column; gap: 6px; align-items: center; }
+#play { width: 42px; height: 42px; border-radius: 50%; border: 1.5px solid var(--malachite); background: transparent; color: var(--malachite); display: grid; place-items: center; }
+#play svg { width: 16px; height: 16px; fill: currentColor; }
+#speed { border: 0; background: transparent; color: var(--fg-3); font-size: 11.5px; padding: 0; }
+#trackwrap { position: relative; min-width: 0; }
+#track { width: 100%; height: 78px; display: block; cursor: pointer; touch-action: none; border-radius: 6px; }
+#trackwrap .hint { position: absolute; right: 0; top: -2px; font-size: 11px; color: var(--fg-3); pointer-events: none; }
+
+/* 右栏 */
+#panel { grid-column: 2; grid-row: 1 / span 2; background: var(--panel); border-left: 1px solid var(--line); display: flex; flex-direction: column; min-height: 0; }
+#searchbox { position: relative; padding-block: 14px 10px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); border-bottom: 1px solid var(--line); }
+#search { width: 100%; box-sizing: border-box; height: 38px; border-radius: 10px; border: 1px solid var(--line-2); background: var(--panel-2); padding: 0 12px; font-size: 14px; }
+#search::placeholder { color: var(--fg-3); }
+#suggest { position: absolute; left: 16px; right: 16px; top: 52px; z-index: 8; background: var(--panel); border: 1px solid var(--line-2); border-radius: 10px; box-shadow: 0 10px 30px rgba(0,0,0,.18); overflow: hidden; }
+#suggest button { display: grid; grid-template-columns: 1fr auto; gap: 2px 8px; width: 100%; text-align: left; padding: 8px 12px; border: 0; background: transparent; border-bottom: 1px solid var(--line); }
+#suggest button:last-child { border-bottom: 0; }
+#suggest button:hover, #suggest button.on { background: var(--panel-2); }
+#suggest .n { font-weight: 700; }
+#suggest .c { color: var(--fg-3); font-size: 12px; text-align: right; }
+#suggest .m { grid-column: 1 / -1; color: var(--fg-3); font-size: 12px; }
+#tabs { display: flex; gap: 2px; padding-block: 8px 0; padding-left: max(12px, env(safe-area-inset-left, 0px)); padding-right: max(12px, env(safe-area-inset-right, 0px)); overflow-x: auto; border-bottom: 1px solid var(--line); }
+#tabs button { border: 0; background: transparent; padding: 8px 10px 9px; color: var(--fg-3); font-size: 13.5px; border-bottom: 2px solid transparent; margin-bottom: -1px; }
+#tabs button[aria-selected="true"] { color: var(--fg); border-bottom-color: var(--gold); font-weight: 700; }
+#pages { flex: 1; min-height: 0; overflow: auto; padding-block: 14px 24px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.page[hidden] { display: none; }
+h2.sec { font-family: var(--serif); font-weight: 900; font-size: 21px; margin: 0; letter-spacing: 0.04em; text-wrap: balance; }
+.range { color: var(--gold); font-size: 12.5px; letter-spacing: 0.06em; margin-top: 2px; }
+.prose { line-height: 1.8; color: var(--fg-2); margin: 10px 0 0; font-size: 14px; }
+.card { margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--line); }
+.label { font-size: 12px; letter-spacing: 0.12em; color: var(--fg-3); margin-bottom: 8px; }
+.event { display: flex; gap: 8px; align-items: baseline; font-size: 13.5px; line-height: 1.6; }
+.event .m { color: var(--gold); min-width: 64px; font-size: 12.5px; }
+.rows { display: flex; flex-direction: column; }
+.row { display: grid; grid-template-columns: 20px minmax(0, 1fr) auto; gap: 8px; align-items: center; padding: 6px 4px; border: 0; background: transparent; text-align: left; border-radius: 7px; width: 100%; }
+.row:hover { background: var(--panel-2); }
+.row .rk { color: var(--fg-3); font-size: 12px; text-align: right; }
+.row .nm { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.row .nm i { font-style: normal; color: var(--fg-3); font-size: 12px; margin-left: 6px; }
+.row .v { color: var(--fg-2); font-size: 12.5px; }
+.sw { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 7px; vertical-align: -1px; }
+.srow { display: grid; grid-template-columns: minmax(0, 1fr) 92px 50px; gap: 8px; align-items: center; padding: 6px 4px; border: 0; background: transparent; width: 100%; text-align: left; border-radius: 7px; }
+.srow:hover { background: var(--panel-2); }
+.srow canvas { width: 92px; height: 22px; display: block; }
+.srow .p { text-align: right; font-size: 13px; }
+.fam { font-size: 11.5px; color: var(--fg-3); letter-spacing: 0.14em; margin: 12px 0 2px 4px; }
+.facts { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 6px 14px; font-size: 13.5px; margin-top: 12px; }
+.facts dt { color: var(--fg-3); }
+.facts dd { margin: 0; }
+.chart { width: 100%; height: 150px; display: block; margin-top: 10px; }
+.pill { display: inline-block; font-size: 11.5px; padding: 2px 8px; border-radius: 999px; border: 1px solid var(--line-2); color: var(--fg-2); margin-left: 6px; vertical-align: 2px; }
+.pill.warn { border-color: var(--cinnabar); color: var(--cinnabar); }
+.trail { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
+.trail span { font-size: 12.5px; padding: 3px 8px; border-radius: 6px; background: var(--panel-2); }
+.empty { color: var(--fg-3); line-height: 1.7; }
+.linkbtn { border: 0; background: transparent; color: var(--malachite); padding: 0; text-decoration: underline; text-underline-offset: 3px; }
+.notes h3 { font-size: 15px; margin: 18px 0 6px; font-family: var(--serif); }
+.notes p, .notes li { line-height: 1.75; color: var(--fg-2); font-size: 13.5px; }
+.notes ul { padding-left: 18px; margin: 6px 0; }
+.notes a { color: var(--malachite); }
+.notes code { font-size: 12px; background: var(--panel-2); padding: 1px 4px; border-radius: 4px; }
+.foot { margin-top: 18px; font-size: 12px; color: var(--fg-3); line-height: 1.6; }
+
+@media (max-width: 900px) {
+  body { overflow: auto; }
+  #app { position: static; display: block; padding-left: 0; padding-right: 0; padding-top: env(safe-area-inset-top, 0px); }
+  #stage { height: calc(100vw * 0.66 + 118px); max-height: 640px; min-height: 330px; }
+  #panel { border-left: 0; border-top: 1px solid var(--line); }
+  #pages { overflow: visible; }
+  #plate { max-width: 70%; }
+  #plate .when { font-size: 30px; }
+  #plate.boxed { background: var(--panel); padding: 8px 12px 9px; border-radius: 10px; border: 1px solid var(--line); box-shadow: 0 2px 12px rgba(0,0,0,.12); }
+#plate .legend { display: none; }
+  #survivor { top: auto; bottom: 10px; right: 10px; max-width: 220px; font-size: 12px; }
+  #tools { right: 10px; top: 10px; }
+  #tgDelist { top: auto; right: auto; left: 10px; bottom: 10px; padding: 5px 10px; font-size: 12px; }
+  #survivor { bottom: 48px; left: 10px; right: auto; }
+  #timebar { position: sticky; bottom: env(safe-area-inset-bottom, 0px); z-index: 6; }
+  #track { height: 64px; }
+}
+@media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important; } }
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="stage">
+    <canvas id="map" aria-label="A股行业市值版图"></canvas>
+    <div id="plate">
+      <div class="kicker">A股疆域图</div>
+      <div class="when" id="when">2026年10月</div>
+      <div class="sum num" id="sum"></div>
+      <div class="legend">面积 = 月末总市值 · 浅色小块是较小的公司 · <span class="hatchkey"></span>斜线为估算</div>
+    </div>
+    <div id="tools">
+      <div class="zoombox" role="group" aria-label="缩放">
+        <button id="zin" title="放大" aria-label="放大">+</button>
+        <button id="zout" title="缩小" aria-label="缩小">−</button>
+        <button id="zreset" title="复位" aria-label="复位" style="font-size:13px">⤢</button>
+      </div>
+    </div>
+    <button class="chipbtn" id="tgDelist" aria-pressed="false"><span class="dot"></span>标出日后退市的公司</button>
+    <div id="survivor" hidden></div>
+    <div id="tip" hidden></div>
+  </div>
+
+  <div id="timebar">
+    <div id="playbox">
+      <button id="play" aria-label="播放"><svg viewBox="0 0 16 16" id="playicon"><path d="M4 2.5v11l9-5.5z"/></svg></button>
+      <button id="speed" aria-label="播放速度">每秒半年</button>
+    </div>
+    <div id="trackwrap">
+      <canvas id="track" aria-label="时间轴：拖动选择年月"></canvas>
+    </div>
+  </div>
+
+  <aside id="panel">
+    <div id="searchbox">
+      <input id="search" type="search" placeholder="找公司：名称、曾用名或代码" autocomplete="off" aria-label="搜索公司">
+      <div id="suggest" hidden></div>
+    </div>
+    <div id="tabs" role="tablist">
+      <button role="tab" data-tab="now" aria-selected="true">此时</button>
+      <button role="tab" data-tab="realms" aria-selected="false">诸国</button>
+      <button role="tab" data-tab="detail" aria-selected="false">详情</button>
+      <button role="tab" data-tab="notes" aria-selected="false">资料与边界</button>
+    </div>
+    <div id="pages">
+      <section class="page" data-page="now"></section>
+      <section class="page" data-page="realms" hidden></section>
+      <section class="page" data-page="detail" hidden><p class="empty">点地图上的一块，或在上方搜索公司，这里会显示它的版图变迁。</p></section>
+      <section class="page notes" data-page="notes" hidden></section>
+    </div>
+  </aside>
+</div>
+
+<script src="assets/lib/d3.min.js"></script>
+<script src="assets/lib/d3-weighted-voronoi.min.js"></script>
+<script src="assets/data.js"></script>
+<script>
+"use strict";
+// ---------------------------------------------------------------- 数据
+const DATA = window.AGU_DATA;
+const LAY = window.AGU_LAYOUT;
+const MONTHS = DATA.months, NM = MONTHS.length, LAST = NM - 1;
+const SECT = DATA.sectors.map(([k, n, f], i) => ({ i, k, n, f }));
+const SHORT = { power: '新能源', media: '传媒', chem: '化工', metal: '有色', defense: '军工', transp: '交运', util: '公用', agri: '农林牧渔', light: '轻工纺服', trade: '商贸服务', food: '食品饮料', broker: '证券' };
+const FAM = { fin: '金融', prop: '地产建筑', cons: '消费', mfg: '制造', tech: '科技', cyc: '周期资源', infra: '公用交运' };
+const FAM_ORDER = ['fin', 'prop', 'cons', 'mfg', 'tech', 'cyc', 'infra'];
+// 矿物颜料色：[色相, 饱和度]
+const HUE = { bank: [6, 62], broker: [24, 50], insur: [352, 42], estate: [40, 58], build: [30, 34], bmat: [50, 34],
+  baijiu: [330, 42], food: [345, 38], appl: [305, 24], pharma: [152, 36], agri: [92, 34], light: [62, 36], trade: [18, 32],
+  auto: [198, 34], power: [134, 38], mach: [172, 26], defense: [212, 16],
+  elec: [214, 46], semi: [236, 40], ai: [264, 44], telecom: [190, 44], soft: [224, 32], media: [286, 26],
+  oil: [22, 30], coal: [30, 6], metal: [38, 46], steel: [206, 10], chem: [70, 32], util: [180, 30], transp: [246, 16] };
+SECT.forEach(s => { s.h = HUE[s.k][0]; s.s = HUE[s.k][1]; s.short = SHORT[s.k] || s.n; });
+const SECTOT = DATA.sec, TOT = DATA.tot, CNT = DATA.cnt;
+const THEMES = { baijiu: '白酒', appl: '家电', semi: '半导体', ai: 'AI算力' };
+
+// 公司：[code, name, renames, sectorChanges, a, b, estRanges, isSH]
+const raw = Uint8Array.from(atob(DATA.caps), c => c.charCodeAt(0));
+const Q = new Uint16Array(raw.buffer, raw.byteOffset, raw.byteLength / 2);
+const CO = []; let off = 0;
+DATA.co.forEach((c, j) => {
+  const o = { j, code: c[0], name: c[1], ren: c[2], sc: c[3], a: c[4], b: c[5], est: c[6], sh: c[7], off };
+  off += o.b - o.a + 1; CO.push(o);
+});
+function capAt(o, t) { if (t < o.a || t > o.b) return 0; return Math.pow(10, Q[o.off + t - o.a] / 9000 - 2); }
+function secAt(o, t) { let s = o.sc[0][1]; for (const [m, k] of o.sc) { if (m <= t) s = k; else break; } return s; }
+function nameAt(o, t) { for (const [u, n] of o.ren) if (t <= u) return n; return o.name; }
+function estAt(o, t) { for (const [x, y] of o.est) if (t >= x && t <= y) return true; return false; }
+function exch(o) { return o.sh ? '沪' : '深'; }
+
+// 每月按市值排名（懒计算）
+const rankCache = new Map();
+function ranking(t) {
+  if (rankCache.has(t)) return rankCache.get(t);
+  const arr = [];
+  for (const o of CO) if (t >= o.a && t <= o.b) arr.push([o, capAt(o, t)]);
+  arr.sort((x, y) => y[1] - x[1]);
+  const r = { arr, pos: new Map(arr.map((x, i) => [x[0].j, i + 1])) };
+  rankCache.set(t, r);
+  if (rankCache.size > 40) rankCache.delete(rankCache.keys().next().value);
+  return r;
+}
+
+// ---------------------------------------------------------------- 文案
+const ERAS = [
+  { a: '2000-01', b: '2001-12', t: '千家诸侯', x: '2000年初，沪深两市约930家公司（不含B股），没有哪个行业超过全图的13%：商贸服务、房地产、公用事业、化工和电子大致平分天下，市值最大的公司也只有几百亿元。2001年6月14日上证指数到达2245点；同月国有股减持办法出台，市场转入长达四年的熊市。' },
+  { a: '2002-01', b: '2005-12', t: '熊市里的重工业', x: '中国石化2001年8月登陆A股，长江电力2003年11月上市。石油石化、电力、高速公路、港口和钢铁撑起了熊市中的版图：2005年中，仅石油石化、公用事业和交通运输三国就占全图约三分之一。2005年4月股权分置改革启动，6月6日上证指数跌破1000点，全图市值只有约3.2万亿元。' },
+  { a: '2006-01', b: '2007-10', t: '银行立国', x: '股改之后资金回流，大型国企以A+H的方式回归。2006年10月27日工商银行在上海和香港同步上市，银行的版图一举扩张，到年底占全图约37%，是本图所见银行版图的顶点。2007年中国人寿、中国平安、中国神华相继登陆A股，全图市值从2005年底的约3.3万亿元涨到2007年10月的约35万亿元；10月16日上证指数达到6124点。' },
+  { a: '2007-11', b: '2008-12', t: '两桶油与金融危机', x: '2007年11月5日中国石油在上海上市，首日按A股价格计的总市值约1.1万亿美元，石油石化的版图当月扩到全图约22%。此后A股随全球金融危机下跌，2008年10月28日上证指数跌至1664点，全图市值从约35万亿元缩到13万亿元左右。11月，政府推出四万亿元投资计划。' },
+  { a: '2009-01', b: '2013-12', t: '周期退潮', x: '四万亿刺激带来2009年的反弹，工程机械、煤炭、有色金属的版图一度扩大。2009年10月30日创业板开板，此后新上市的多是中小民营企业：公司家数从2009年中的约1,600家增至2013年中的约2,500家，但每家都不大，版图的主体仍是银行和石油石化。2010年以后周期行业持续收缩，2013年6月出现银行间“钱荒”。' },
+  { a: '2014-01', b: '2016-12', t: '杠杆牛与股灾', x: '2014年11月沪港通开通、央行降息，融资买入推动了一轮快牛，证券的版图从全图约3%扩到约5%。南车、北车在2015年6月合并为中国中车，月底市值约5000亿元。6月12日上证指数到达5178点后急跌，政府组织救市。2016年1月熔断机制实施，四天里两次触发后即暂停。' },
+  { a: '2017-01', b: '2021-02', t: '核心资产', x: '外资经沪深港通持续流入，盈利稳定的消费和医药龙头被称为“核心资产”。2018年中美贸易摩擦带来一整年下跌；2019年7月22日科创板开市。疫情之后流动性宽松，医药的版图在2020年7月达到全图约8.7%；2020年6月贵州茅台首次超过工商银行，成为全图市值最大的公司，2021年2月市值约2.7万亿元，白酒约占全图6%。' },
+  { a: '2021-03', b: '2022-12', t: '新能源', x: '2020年9月中国提出碳达峰、碳中和目标。宁德时代、隆基绿能、阳光电源等组成的“电力设备与新能源”，从2020年初占全图约3%扩到2022年7月的7.5%，比亚迪带动汽车版图扩张。消费龙头在2021年2月见顶后回落。2021年11月北京证券交易所开市（本图未计入北交所）。' },
+  { a: '2023-01', b: '2024-12', t: 'AI与“中特估”', x: '2022年底ChatGPT发布后，光模块、AI服务器、AI芯片公司成为新热点，本图从2023年1月起把这批公司单列为“AI算力”。同年，“中国特色估值体系”带动中国移动、中国海油、中国电信等央企重估。2023年2月全面实行注册制；2024年初小盘股大跌，9月24日一揽子政策出台后市场急涨。' },
+  { a: '2025-01', b: '2026-10', t: '芯片与算力', x: '2025年初国泰君安吸收合并海通证券。此后半导体和AI算力成为扩张最快的版图：摩尔线程、沐曦在2025年12月上市；2026年7月27日长鑫科技在科创板上市，月底市值约3.6万亿元，超过工商银行成为全图最大的公司。2026年6月，电子、半导体和AI算力合计约占全图26%；下半年科技股大幅回落，到10月底降到约19%，银行重新回到15%以上。' },
+];
+const PROLOGUE = { t: '序章：从老八股到千家', r: '1990–1999', x: '1990年12月19日上海证券交易所开业，首批8只股票被称为“老八股”；深圳证券交易所1991年7月3日正式开业。上市公司起初多由国企改制而来，股份分成可以交易的社会公众股和不能流通的国有股、法人股。到1999年底，两市上市公司约950家。能免费取得的逐股市值数据从2000年开始，所以本图从2000年1月画起。' };
+const EVENTS = [
+  ['2001-06', '上证2245点；国有股减持办法出台'], ['2001-08', '中国石化A股上市'], ['2005-04', '股权分置改革启动'], ['2005-06', '上证跌至998点'],
+  ['2006-10', '工商银行A+H同步上市'], ['2007-10', '上证6124点'], ['2007-11', '中国石油A股上市'], ['2008-10', '上证跌至1664点'],
+  ['2008-11', '四万亿投资计划'], ['2009-10', '创业板开板'], ['2010-07', '农业银行上市'], ['2013-06', '银行间“钱荒”'],
+  ['2014-11', '沪港通开通'], ['2015-06', '上证5178点后急跌；中国中车成立'], ['2016-01', '熔断机制四天后暂停'], ['2016-12', '深港通开通'],
+  ['2018-03', '中美贸易摩擦开始'], ['2019-07', '科创板开市'], ['2020-06', '贵州茅台成为市值第一'], ['2020-08', '创业板注册制'],
+  ['2021-02', '消费龙头见顶'], ['2022-04', '中国海油A股上市'], ['2023-01', '本图单列“AI算力”'], ['2023-02', '全面注册制'],
+  ['2024-04', '新“国九条”'], ['2024-09', '9·24一揽子政策'], ['2025-02', '海通证券并入国泰君安'], ['2025-12', '摩尔线程、沐曦上市'],
+  ['2026-07', '长鑫科技上市'],
+].map(([m, t]) => ({ m, t, i: MONTHS.indexOf(m) })).filter(e => e.i >= 0);
+
+// ---------------------------------------------------------------- 格式
+const fmtYi = v => v >= 10000 ? (v / 10000).toFixed(v >= 100000 ? 1 : 2) + '万亿' : (v >= 100 ? Math.round(v).toLocaleString('zh-CN') : v >= 10 ? v.toFixed(1) : v.toFixed(2)) + '亿';
+const fmtPct = v => (v >= 10 ? v.toFixed(1) : v >= 1 ? v.toFixed(1) : v.toFixed(2)) + '%';
+const ym = t => { const [y, m] = MONTHS[t].split('-'); return `${y}年${+m}月`; };
+const ymShort = t => MONTHS[t].replace('-', '.');
+
+// ---------------------------------------------------------------- 主题与颜色
+let DARK = false;
+function readTheme() {
+  const a = document.documentElement.getAttribute('data-theme');
+  DARK = a ? a === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches;
+}
+function css(v) { return getComputedStyle(document.documentElement).getPropertyValue(v).trim(); }
+let C = {};
+function refreshColors() {
+  readTheme();
+  C = { sea: css('--sea'), seaLine: css('--sea-line'), shadow: css('--land-shadow'), fg: css('--fg'), fg2: css('--fg-2'), fg3: css('--fg-3'), gold: css('--gold'), cin: css('--cinnabar'), halo: css('--halo'), panel: css('--panel'), line: css('--line') };
+  hatch = null;
+}
+function fill(s, v = 0, rest = false) {
+  if (DARK) return `hsl(${s.h} ${s.s * (rest ? 0.5 : 0.72)}% ${(rest ? 24 : 33) + v}%)`;
+  return `hsl(${s.h} ${s.s * (rest ? 0.6 : 0.92)}% ${(rest ? 86 : 75) + v}%)`;
+}
+function chip(s) { return DARK ? `hsl(${s.h} ${s.s}% 58%)` : `hsl(${s.h} ${s.s}% 48%)`; }
+function edge(s) { return DARK ? `hsl(${s.h} ${s.s * 0.5}% 62% / .55)` : `hsl(${s.h} ${s.s * 0.7}% 30% / .55)`; }
+let hatch = null;
+function hatchPattern(ctx) {
+  if (hatch) return hatch;
+  const c = document.createElement('canvas'); c.width = c.height = 8;
+  const g = c.getContext('2d'); g.strokeStyle = DARK ? 'rgba(235,230,214,.22)' : 'rgba(28,37,34,.20)'; g.lineWidth = 1.1;
+  g.beginPath(); g.moveTo(-2, 10); g.lineTo(10, -2); g.moveTo(6, 10); g.lineTo(10, 6); g.moveTo(-2, 2); g.lineTo(2, -2); g.stroke();
+  hatch = ctx.createPattern(c, 'repeat'); return hatch;
+}
+function hash01(n) { n = (n * 2654435761) >>> 0; return (n % 1000) / 1000; }
+
+// ---------------------------------------------------------------- 版图计算
+const CLIP = LAY.clip, LW = LAY.W, LH = LAY.H;
+const wv = d3.weightedVoronoi().x(d => d.x).y(d => d.y).weight(d => d.w);
+function frameMaps(f) {
+  const fr = LAY.frames[f]; const m = new Map();
+  for (const c of fr) { if (c[1] === null) continue; const cells = new Map(); for (const z of c[4]) cells.set(z[0], z); m.set(c[0], { x: c[1], y: c[2], w: c[3], cells }); }
+  return m;
+}
+const fmCache = new Map();
+function FM(f) { if (!fmCache.has(f)) { fmCache.set(f, frameMaps(f)); if (fmCache.size > 12) fmCache.delete(fmCache.keys().next().value); } return fmCache.get(f); }
+function lerp(a, b, u) { return a + (b - a) * u; }
+let geom = null, geomT = -1;
+function computeGeom(tf) {
+  if (geom && Math.abs(geomT - tf) < 1e-6) return geom;
+  const f0 = Math.floor(tf), f1 = Math.min(f0 + 1, LAST), u = tf - f0;
+  const A = FM(f0), B = FM(f1);
+  const keys = new Set([...A.keys(), ...B.keys()]);
+  const sites = [];
+  for (const k of keys) {
+    const a = A.get(k), b = B.get(k);
+    if (a && b) sites.push({ k, x: lerp(a.x, b.x, u), y: lerp(a.y, b.y, u), w: lerp(a.w, b.w, u), a, b });
+    else if (a && u < 0.5) sites.push({ k, x: a.x, y: a.y, w: a.w, a, b: null });
+    else if (b && u >= 0.5) sites.push({ k, x: b.x, y: b.y, w: b.w, a: null, b });
+  }
+  let polys;
+  try { polys = wv.clip(CLIP)(sites); } catch (e) { polys = []; }
+  const countries = [], cells = [];
+  for (const p of polys) {
+    if (!p || p.length < 3) continue;
+    const s = p.site.originalObject; const k = s.k;
+    countries.push({ k, poly: p });
+    // 城市
+    const ca = s.a ? s.a.cells : new Map(), cb = s.b ? s.b.cells : new Map();
+    const ids = new Set([...ca.keys(), ...cb.keys()]);
+    const sub = [];
+    const dxA = s.a ? s.x - s.a.x : 0, dyA = s.a ? s.y - s.a.y : 0, dxB = s.b ? s.x - s.b.x : 0, dyB = s.b ? s.y - s.b.y : 0;
+    for (const id of ids) {
+      const za = ca.get(id), zb = cb.get(id);
+      let x, y, w;
+      if (za && zb) { x = lerp(za[1], zb[1], u); y = lerp(za[2], zb[2], u); w = lerp(za[3], zb[3], u); }
+      else if (za) { if (u >= 0.5) continue; x = za[1] + dxA; y = za[2] + dyA; w = za[3]; }
+      else { if (u < 0.5) continue; x = zb[1] + dxB; y = zb[2] + dyB; w = zb[3]; }
+      sub.push({ id, x, y, w });
+    }
+    if (sub.length <= 1) { cells.push({ k, id: sub.length ? sub[0].id : -1, poly: p }); continue; }
+    let cp = [];
+    try { cp = wv.clip(p.map(q => [q[0], q[1]]))(sub); } catch (e) { cp = []; }
+    if (!cp.length) { cells.push({ k, id: -1, poly: p }); continue; }
+    for (const q of cp) if (q && q.length >= 3) cells.push({ k, id: q.site.originalObject.id, poly: q });
+  }
+  const tInt = Math.round(tf);
+  for (const c of countries) { c.area = Math.abs(d3.polygonArea(c.poly)); c.cen = d3.polygonCentroid(c.poly); }
+  for (const c of cells) { c.area = Math.abs(d3.polygonArea(c.poly)); c.cen = d3.polygonCentroid(c.poly); }
+  geom = { countries, cells, t: tInt }; geomT = tf;
+  return geom;
+}
+
+// ---------------------------------------------------------------- 画布
+const mapEl = document.getElementById('map'), ctx = mapEl.getContext('2d');
+const stage = document.getElementById('stage');
+let VW = 0, VH = 0, DPR = 1, base = { s: 1, x: 0, y: 0 }, zt = d3.zoomIdentity;
+let T = LAST, playing = false, showDelist = false, selected = null, hoverCell = null;
+function resize() {
+  const r = stage.getBoundingClientRect(); VW = r.width; VH = r.height; DPR = Math.min(window.devicePixelRatio || 1, 2);
+  mapEl.width = Math.round(VW * DPR); mapEl.height = Math.round(VH * DPR);
+  const narrow = VW < 600;
+  const padT = narrow ? 92 : 110, padB = narrow ? 16 : 26, padX = narrow ? 10 : 30;
+  const s = Math.min((VW - padX * 2) / LW, (VH - padT - padB) / LH);
+  base = { s, x: (VW - LW * s) / 2, y: padT + (VH - padT - padB - LH * s) / 2 };
+  draw(); drawTrack();
+}
+function toScreen(p) { return [zt.applyX(base.x + p[0] * base.s), zt.applyY(base.y + p[1] * base.s)]; }
+function toMap(px, py) { return [(zt.invertX(px) - base.x) / base.s, (zt.invertY(py) - base.y) / base.s]; }
+function pathPoly(poly) { ctx.beginPath(); poly.forEach((q, i) => { const [x, y] = toScreen(q); i ? ctx.lineTo(x, y) : ctx.moveTo(x, y); }); ctx.closePath(); }
+const SCALE = () => base.s * zt.k;
+
+function drawSea() {
+  ctx.fillStyle = C.sea; ctx.fillRect(0, 0, VW, VH);
+  // 海上的波纹线：大陆轮廓向外等比放大
+  const cx = LW / 2, cy = LH / 2;
+  ctx.strokeStyle = C.seaLine; ctx.lineWidth = 1;
+  for (let i = 1; i <= 7; i++) {
+    const f = 1 + i * 0.035 + i * i * 0.004;
+    ctx.setLineDash(i % 2 ? [] : [3, 5]);
+    pathPoly(CLIP.map(q => [cx + (q[0] - cx) * f, cy + (q[1] - cy) * (1 + (f - 1) * 1.35)]));
+    ctx.stroke();
+  }
+  ctx.setLineDash([]);
+}
+function draw() {
+  if (!VW) return;
+  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  drawSea();
+  const g = computeGeom(T);
+  const t = g.t, sc = SCALE();
+  // 大陆阴影
+  ctx.save(); ctx.shadowColor = C.shadow; ctx.shadowBlur = 24; ctx.shadowOffsetY = 6;
+  pathPoly(CLIP); ctx.fillStyle = C.panel; ctx.fill(); ctx.restore();
+  // 城市
+  const later = [];
+  for (const c of g.cells) {
+    const s = SECT[c.k];
+    const isRest = c.id < 0;
+    const v = isRest ? 0 : (hash01(c.id + 7) - 0.5) * (DARK ? 5 : 6);
+    pathPoly(c.poly); ctx.fillStyle = fill(s, v, isRest); ctx.fill();
+    if (!isRest) {
+      const o = CO[c.id];
+      if (estAt(o, t)) { ctx.fillStyle = hatchPattern(ctx); ctx.fill(); }
+      if (showDelist && o.b < LAST) later.push(c);
+    }
+    ctx.strokeStyle = DARK ? 'rgba(13,26,32,.55)' : 'rgba(246,244,238,.85)'; ctx.lineWidth = Math.max(0.6, Math.min(1.4, sc * 1.1)); ctx.stroke();
+  }
+  // 国界
+  for (const c of g.countries) {
+    pathPoly(c.poly); ctx.strokeStyle = DARK ? 'rgba(220,214,196,.55)' : 'rgba(34,44,40,.62)'; ctx.lineWidth = 1.6; ctx.stroke();
+  }
+  pathPoly(CLIP); ctx.strokeStyle = DARK ? 'rgba(220,214,196,.7)' : 'rgba(34,44,40,.75)'; ctx.lineWidth = 2; ctx.stroke();
+  // 日后退市
+  if (showDelist) {
+    ctx.setLineDash([5, 3]); ctx.strokeStyle = C.cin; ctx.lineWidth = 1.8;
+    for (const c of later) { pathPoly(c.poly); ctx.stroke(); }
+    ctx.setLineDash([]);
+  }
+  // 悬停、选中
+  const hl = (c, color, w) => { pathPoly(c.poly); ctx.strokeStyle = color; ctx.lineWidth = w; ctx.stroke(); };
+  if (selected) {
+    if (selected.type === 'co') { const c = g.cells.find(c => c.id === selected.j); if (c) hl(c, C.gold, 3); }
+    else { const c = g.countries.find(c => c.k === selected.k); if (c) hl(c, C.gold, 3); }
+  }
+  if (hoverCell) { const c = g.cells.find(c => c.id === hoverCell.id && c.k === hoverCell.k); if (c) hl(c, C.fg, 1.6); }
+  drawLabels(g, sc);
+}
+function textHalo(txt, x, y) { ctx.strokeText(txt, x, y); ctx.fillText(txt, x, y); }
+function drawLabels(g, sc) {
+  const t = g.t, boxes = [];
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.lineJoin = 'round';
+  // 国名
+  const clabels = [];
+  for (const c of g.countries) {
+    const s = SECT[c.k]; const aPx = c.area * sc * sc;
+    if (aPx < 900) continue;
+    const fs = Math.max(11, Math.min(34, Math.sqrt(aPx) / 6.2));
+    const name = s.short;
+    const [x, y] = toScreen(c.cen);
+    const spacing = fs > 20 ? 0.18 : 0.06;
+    const wTxt = name.length * fs * (1 + spacing);
+    clabels.push({ s, name, x, y, fs, spacing, box: [x - wTxt / 2, y - fs * 0.62, x + wTxt / 2, y + fs * (fs >= 15 ? 1.15 : 0.62)], share: SECTOT[c.k][t] / TOT[t] * 100 });
+  }
+  // 城名（先算，避开国名）
+  const overlap = (a, b) => a[0] < b[2] && a[2] > b[0] && a[1] < b[3] && a[3] > b[1];
+  for (const L of clabels) boxes.push(L.box);
+  const cityLabels = [];
+  const cells = g.cells.filter(c => c.id >= 0).sort((a, b) => b.area - a.area);
+  for (const c of cells) {
+    const aPx = c.area * sc * sc; if (aPx < 1500) break;
+    const o = CO[c.id]; const nm = nameAt(o, t);
+    const fs = Math.max(10, Math.min(15, Math.sqrt(aPx) / 7.5));
+    const [x, y] = toScreen(c.cen);
+    const w = nm.length * fs + 4; const two = aPx > 5200;
+    const h = two ? fs * 2.3 : fs * 1.2;
+    let yy = y, box = [x - w / 2, y - h / 2, x + w / 2, y + h / 2];
+    const hitBox = boxes.find(b => overlap(b, box));
+    if (hitBox) { yy = hitBox[3] + h / 2 + 3; box = [x - w / 2, yy - h / 2, x + w / 2, yy + h / 2]; if (boxes.some(b => overlap(b, box))) continue; }
+    // 文字须在城内
+    const [mx1, myc] = toMap(box[0], yy), [mx2] = toMap(box[2], yy);
+    const [, myb] = toMap(x, box[3]), [, myt] = toMap(x, box[1]);
+    if (!d3.polygonContains(c.poly, [mx1, myc]) || !d3.polygonContains(c.poly, [mx2, myc]) || !d3.polygonContains(c.poly, [toMap(x, 0)[0], myb]) || !d3.polygonContains(c.poly, [toMap(x, 0)[0], myt])) continue;
+    boxes.push(box); cityLabels.push({ nm, x, y: yy, fs, two, cap: capAt(o, t) });
+  }
+  ctx.strokeStyle = C.halo; ctx.fillStyle = C.fg;
+  for (const L of cityLabels) {
+    ctx.font = `500 ${L.fs}px ${css('--sans')}`; ctx.lineWidth = 3; ctx.fillStyle = C.fg;
+    if (L.two) { textHalo(L.nm, L.x, L.y - L.fs * 0.55); ctx.font = `400 ${L.fs * 0.82}px ${css('--sans')}`; ctx.fillStyle = C.fg2; textHalo(fmtYi(L.cap), L.x, L.y + L.fs * 0.62); }
+    else textHalo(L.nm, L.x, L.y);
+  }
+  for (const L of clabels) {
+    ctx.font = `900 ${L.fs}px ${css('--serif')}`; ctx.lineWidth = Math.max(3, L.fs / 5); ctx.strokeStyle = C.halo;
+    ctx.fillStyle = DARK ? `hsl(${L.s.h} ${L.s.s}% 80%)` : `hsl(${L.s.h} ${L.s.s * 0.9}% 22%)`;
+    if ('letterSpacing' in ctx) { ctx.letterSpacing = `${(L.fs * L.spacing).toFixed(1)}px`; }
+    textHalo(L.name, L.x + ('letterSpacing' in ctx ? L.fs * L.spacing / 2 : 0), L.y);
+    if ('letterSpacing' in ctx) ctx.letterSpacing = '0px';
+    if (L.fs >= 15) { ctx.font = `500 ${Math.max(10, L.fs * 0.42)}px ${css('--sans')}`; ctx.lineWidth = 3; ctx.fillStyle = C.fg2; textHalo(fmtPct(L.share), L.x, L.y + L.fs * 0.86); }
+  }
+}
+
+// ---------------------------------------------------------------- 交互：缩放、悬停、点击
+const plateEl = document.getElementById('plate');
+const zoom = d3.zoom().scaleExtent([1, 10]).on('zoom', e => { zt = e.transform; plateEl.classList.toggle('boxed', zt.k > 1.05); draw(); }).on('start', () => mapEl.classList.add('dragging')).on('end', () => mapEl.classList.remove('dragging'));
+d3.select(mapEl).call(zoom).on('dblclick.zoom', null);
+document.getElementById('zin').onclick = () => d3.select(mapEl).transition().duration(250).call(zoom.scaleBy, 1.6);
+document.getElementById('zout').onclick = () => d3.select(mapEl).transition().duration(250).call(zoom.scaleBy, 1 / 1.6);
+document.getElementById('zreset').onclick = () => d3.select(mapEl).transition().duration(300).call(zoom.transform, d3.zoomIdentity);
+const tip = document.getElementById('tip');
+function hit(px, py) {
+  const g = computeGeom(T); const p = toMap(px, py);
+  for (const c of g.cells) if (d3.polygonContains(c.poly, p)) return c;
+  return null;
+}
+function tipHTML(c) {
+  const t = geom.t, s = SECT[c.k];
+  const sh = SECTOT[c.k][t] / TOT[t] * 100;
+  if (c.id < 0) {
+    const fr = LAY.frames[t].find(x => x[0] === c.k);
+    const n = countIn(c.k, t);
+    const shown = fr && fr[4] ? fr[4].filter(z => z[0] >= 0).length : 0;
+    return `<div class="t">${s.n}</div><div class="s">其余 ${Math.max(0, n - shown)} 家较小的公司</div><div class="s">${s.n}合计 ${fmtYi(SECTOT[c.k][t])} · 占全图 ${fmtPct(sh)}</div>`;
+  }
+  const o = CO[c.id], v = capAt(o, t), r = ranking(t).pos.get(o.j);
+  const old = nameAt(o, t) !== o.name ? `<div class="s">现名 ${o.name}</div>` : '';
+  const est = estAt(o, t) ? '<div class="e">本月市值为估算值</div>' : '';
+  const del = o.b < LAST ? `<div class="e">${ym(o.b)}后退市或被合并</div>` : '';
+  return `<div class="t">${nameAt(o, t)} <span class="s">${o.code}</span></div>${old}<div>${fmtYi(v)} · 全图第 ${r} 位 · ${fmtPct(v / TOT[t] * 100)}</div><div class="s">${s.n} · 该国合计 ${fmtYi(SECTOT[c.k][t])}（${fmtPct(sh)}）</div>${est}${del}`;
+}
+const countCache = new Map();
+function countIn(k, t) {
+  const key = k * 1000 + t; if (countCache.has(key)) return countCache.get(key);
+  let n = 0; for (const o of CO) if (t >= o.a && t <= o.b && secAt(o, t) === k) n++;
+  countCache.set(key, n); return n;
+}
+mapEl.addEventListener('pointermove', e => {
+  if (e.pointerType === 'touch') return;
+  const r = mapEl.getBoundingClientRect(); const x = e.clientX - r.left, y = e.clientY - r.top;
+  const c = hit(x, y);
+  if ((c && hoverCell && c.id === hoverCell.id && c.k === hoverCell.k) || (!c && !hoverCell)) { if (c) placeTip(x, y); return; }
+  hoverCell = c ? { id: c.id, k: c.k } : null;
+  if (c) { tip.innerHTML = tipHTML(c); tip.hidden = false; placeTip(x, y); } else tip.hidden = true;
+  draw();
+});
+mapEl.addEventListener('pointerleave', () => { hoverCell = null; tip.hidden = true; draw(); });
+function placeTip(x, y) {
+  const w = tip.offsetWidth, h = tip.offsetHeight;
+  tip.style.left = Math.min(x, VW - w - 24) + 'px'; tip.style.top = Math.min(y, VH - h - 24) + 'px';
+}
+mapEl.addEventListener('click', e => {
+  const r = mapEl.getBoundingClientRect(); const c = hit(e.clientX - r.left, e.clientY - r.top);
+  if (!c) return;
+  if (c.id >= 0) select({ type: 'co', j: c.id }); else select({ type: 'sec', k: c.k });
+  if (e.pointerType === 'touch' || matchMedia('(hover: none)').matches) { tip.innerHTML = tipHTML(c); tip.hidden = false; placeTip(e.clientX - r.left, e.clientY - r.top); clearTimeout(tip._h); tip._h = setTimeout(() => tip.hidden = true, 2600); }
+});
+document.getElementById('tgDelist').onclick = function () {
+  showDelist = !showDelist; this.setAttribute('aria-pressed', showDelist); updateSurvivor(); draw();
+};
+function updateSurvivor() {
+  const box = document.getElementById('survivor');
+  if (!showDelist) { box.hidden = true; return; }
+  const t = Math.round(T); let n = 0, v = 0;
+  for (const o of CO) if (t >= o.a && t <= o.b && o.b < LAST) { n++; v += capAt(o, t); }
+  box.hidden = false;
+  box.innerHTML = t === LAST ? '最后一个月没有“日后退市”的公司。往回拖动时间轴看看。'
+    : `${ym(t)}在市的 ${CNT[t].toLocaleString('zh-CN')} 家公司里，有 <b>${n} 家</b>日后退市或被合并，合计 ${fmtYi(v)}，占当时全图 <b>${fmtPct(v / TOT[t] * 100)}</b>。只看今天还在的公司，会漏掉这些版图。`;
+}
+
+// ---------------------------------------------------------------- 时间轴
+const track = document.getElementById('track'), tctx = track.getContext('2d');
+let TW = 0, TH = 0, stackOrder = [];
+FAM_ORDER.forEach(f => SECT.filter(s => s.f === f).forEach(s => stackOrder.push(s.i)));
+let trackHover = -1;
+function trackX(t) { return 8 + (TW - 16) * t / LAST; }
+function trackT(x) { return Math.max(0, Math.min(LAST, (x - 8) / (TW - 16) * LAST)); }
+function drawTrack() {
+  const r = track.getBoundingClientRect(); TW = r.width; TH = r.height; if (!TW) return;
+  track.width = Math.round(TW * DPR); track.height = Math.round(TH * DPR);
+  tctx.setTransform(DPR, 0, 0, DPR, 0, 0); tctx.clearRect(0, 0, TW, TH);
+  const top = 12, bot = TH - 15, hgt = bot - top;
+  // 分层面积：各国占全图的份额
+  const acc = new Float64Array(NM);
+  for (const k of stackOrder) {
+    const s = SECT[k];
+    tctx.beginPath();
+    for (let t = 0; t < NM; t++) tctx.lineTo(trackX(t), top + hgt * acc[t]);
+    for (let t = LAST; t >= 0; t--) tctx.lineTo(trackX(t), top + hgt * (acc[t] + SECTOT[k][t] / TOT[t]));
+    tctx.closePath(); tctx.fillStyle = DARK ? `hsl(${s.h} ${s.s * 0.7}% 40%)` : `hsl(${s.h} ${s.s}% 66%)`; tctx.fill();
+    for (let t = 0; t < NM; t++) acc[t] += SECTOT[k][t] / TOT[t];
+  }
+  // 年份
+  tctx.fillStyle = C.fg3; tctx.font = `11px ${css('--sans')}`; tctx.textAlign = 'center'; tctx.textBaseline = 'alphabetic';
+  const step = TW < 520 ? 5 : TW < 900 ? 3 : 2;
+  for (let y = 2000; y <= 2026; y += step) { const t = MONTHS.indexOf(`${y}-01`); tctx.fillText(String(y), Math.min(TW - 16, Math.max(14, trackX(t))), TH - 2); }
+  // 大事刻度
+  for (const e of EVENTS) { const x = trackX(e.i); tctx.fillStyle = C.fg2; tctx.beginPath(); tctx.moveTo(x, top - 2); tctx.lineTo(x - 3.2, top - 8); tctx.lineTo(x + 3.2, top - 8); tctx.closePath(); tctx.fill(); }
+  // 当前
+  const x = trackX(T);
+  tctx.fillStyle = 'rgba(0,0,0,0)';
+  tctx.strokeStyle = C.gold; tctx.lineWidth = 2.5; tctx.beginPath(); tctx.moveTo(x, top - 3); tctx.lineTo(x, bot + 3); tctx.stroke();
+  tctx.fillStyle = C.gold; tctx.beginPath(); tctx.arc(x, bot + 3, 4, 0, Math.PI * 2); tctx.fill();
+  if (trackHover >= 0) {
+    const hx = trackX(trackHover); tctx.strokeStyle = C.fg3; tctx.lineWidth = 1; tctx.setLineDash([2, 3]); tctx.beginPath(); tctx.moveTo(hx, top); tctx.lineTo(hx, bot); tctx.stroke(); tctx.setLineDash([]);
+    const ev = EVENTS.find(e => Math.abs(e.i - trackHover) <= 0); const label = ym(trackHover) + (ev ? ' · ' + ev.t : '');
+    tctx.font = `12px ${css('--sans')}`; const w = tctx.measureText(label).width + 12;
+    const lx = Math.max(2, Math.min(TW - w - 2, hx - w / 2));
+    tctx.fillStyle = C.panel; tctx.globalAlpha = .92; tctx.fillRect(lx, 0, w, 15); tctx.globalAlpha = 1;
+    tctx.fillStyle = C.fg; tctx.textAlign = 'left'; tctx.textBaseline = 'top'; tctx.fillText(label, lx + 6, 1);
+  }
+}
+let dragTrack = false;
+function trackPick(e) { const r = track.getBoundingClientRect(); setTime(Math.round(trackT(e.clientX - r.left)), true); }
+track.addEventListener('pointerdown', e => { dragTrack = true; track.setPointerCapture(e.pointerId); stop(); trackPick(e); });
+track.addEventListener('pointermove', e => {
+  const r = track.getBoundingClientRect(); const t = Math.round(trackT(e.clientX - r.left));
+  if (dragTrack) trackPick(e); else if (e.pointerType !== 'touch') { trackHover = t; drawTrack(); }
+});
+track.addEventListener('pointerup', () => { dragTrack = false; });
+track.addEventListener('pointerleave', () => { trackHover = -1; drawTrack(); });
+track.tabIndex = 0;
+track.addEventListener('keydown', e => {
+  const d = { ArrowLeft: -1, ArrowRight: 1, PageDown: -12, PageUp: 12, Home: -999, End: 999 }[e.key];
+  if (d) { e.preventDefault(); stop(); setTime(Math.max(0, Math.min(LAST, Math.round(T) + d)), true); }
+});
+
+// ---------------------------------------------------------------- 播放
+const SPEEDS = [[3, '每秒四分之一年'], [6, '每秒半年'], [12, '每秒一年'], [24, '每秒两年']];
+let speedI = 1, lastTs = 0, raf = 0;
+document.getElementById('speed').onclick = function () { speedI = (speedI + 1) % SPEEDS.length; this.textContent = SPEEDS[speedI][1]; };
+const playBtn = document.getElementById('play');
+function setPlayIcon() { document.getElementById('playicon').innerHTML = playing ? '<path d="M4 2.5h3v11H4zM9 2.5h3v11H9z"/>' : '<path d="M4 2.5v11l9-5.5z"/>'; playBtn.setAttribute('aria-label', playing ? '暂停' : '播放'); }
+function start() {
+  if (T >= LAST - 0.01) T = 0;
+  playing = true; setPlayIcon(); lastTs = 0; raf = requestAnimationFrame(step);
+}
+function stop() { if (!playing) return; playing = false; setPlayIcon(); cancelAnimationFrame(raf); setTime(Math.round(T), true); }
+function step(ts) {
+  if (!playing) return;
+  if (lastTs) { const dt = Math.min(0.1, (ts - lastTs) / 1000); T = Math.min(LAST, T + dt * SPEEDS[speedI][0]); }
+  lastTs = ts;
+  onTimeChange(false);
+  if (T >= LAST) { stop(); return; }
+  raf = requestAnimationFrame(step);
+}
+playBtn.onclick = () => playing ? stop() : start();
+let lastPanelT = -1;
+function setTime(t, settle) { T = t; onTimeChange(settle); }
+function onTimeChange(settle) {
+  const ti = Math.round(T);
+  document.getElementById('when').innerHTML = `${MONTHS[ti].slice(0, 4)}年<small>${+MONTHS[ti].slice(5)}月</small>`;
+  document.getElementById('sum').innerHTML = `本图合计 <b>${fmtYi(TOT[ti])}元</b> · <b>${CNT[ti].toLocaleString('zh-CN')}</b> 家公司`;
+  draw(); drawTrack();
+  if (ti !== lastPanelT && (settle || !playing || ti % 3 === 0)) { lastPanelT = ti; renderPanels(); updateSurvivor(); }
+  if (settle) { try { history.replaceState(null, '', '#' + MONTHS[ti]); } catch (e) {} }
+  if (tip && !tip.hidden && hoverCell) { const g = computeGeom(T); const c = g.cells.find(c => c.id === hoverCell.id && c.k === hoverCell.k); if (c) tip.innerHTML = tipHTML(c); }
+}
+
+// ---------------------------------------------------------------- 右栏
+const pages = {}; document.querySelectorAll('.page').forEach(p => pages[p.dataset.page] = p);
+let tab = 'now';
+document.querySelectorAll('#tabs button').forEach(b => b.onclick = () => showTab(b.dataset.tab));
+function showTab(name) {
+  tab = name;
+  document.querySelectorAll('#tabs button').forEach(b => b.setAttribute('aria-selected', b.dataset.tab === name));
+  for (const k in pages) pages[k].hidden = k !== name;
+  renderPanels();
+}
+function eraAt(t) { const m = MONTHS[t]; return ERAS.find(e => m >= e.a && m <= e.b) || ERAS[0]; }
+function renderPanels() {
+  const t = Math.round(T);
+  if (tab === 'now') renderNow(t);
+  if (tab === 'realms') renderRealms(t);
+  if (tab === 'detail') renderDetail(t);
+}
+function coRow(o, t, i) {
+  const v = capAt(o, t), s = SECT[secAt(o, t)];
+  return `<button class="row" data-co="${o.j}"><span class="rk num">${i}</span><span class="nm"><span class="sw" style="background:${chip(s)}"></span>${nameAt(o, t)}<i>${s.short}</i></span><span class="v num">${fmtYi(v)}</span></button>`;
+}
+function renderNow(t) {
+  const e = eraAt(t);
+  const ev = EVENTS.filter(x => Math.abs(x.i - t) <= 2);
+  const top = ranking(t).arr.slice(0, 10);
+  const pro = MONTHS[t] <= '2000-12' ? `<div class="card"><div class="label">${PROLOGUE.r}</div><h2 class="sec" style="font-size:17px">${PROLOGUE.t}</h2><p class="prose">${PROLOGUE.x}</p></div>` : '';
+  pages.now.innerHTML = `
+    <div class="range">${e.a.replace('-', '.')} – ${e.b.replace('-', '.')}</div>
+    <h2 class="sec">${e.t}</h2>
+    <p class="prose">${e.x}</p>
+    ${ev.length ? `<div class="card"><div class="label">前后两个月</div>${ev.map(x => `<div class="event"><span class="m num">${ymShort(x.i)}</span><span>${x.t}</span></div>`).join('')}</div>` : ''}
+    <div class="card"><div class="label">${ym(t)} · 全图市值前十</div><div class="rows">${top.map(([o], i) => coRow(o, t, i + 1)).join('')}</div></div>
+    ${pro}
+    <div class="card"><div class="label">使用讲解</div><a class="linkbtn" href="video.html">观看视频：怎么用、能看什么（4分38秒）</a></div>
+    <div class="card"><div class="label">年表</div>${ERAS.map(x => `<button class="linkbtn" style="display:block;margin:6px 0;text-align:left" data-goto="${x.a}">${x.a.slice(0, 4)}–${x.b.slice(0, 4)} ${x.t}</button>`).join('')}</div>`;
+  bindRows(pages.now);
+  pages.now.querySelectorAll('[data-goto]').forEach(b => b.onclick = () => { stop(); setTime(MONTHS.indexOf(b.dataset.goto), true); });
+}
+function sparkline(cv, series, t, color, max) {
+  const w = cv.clientWidth || 92, h = cv.clientHeight || 22; cv.width = w * DPR; cv.height = h * DPR;
+  const g = cv.getContext('2d'); g.setTransform(DPR, 0, 0, DPR, 0, 0);
+  const mx = max || Math.max(...series) || 1;
+  g.beginPath(); series.forEach((v, i) => { const x = i / (series.length - 1) * w, y = h - 2 - (h - 4) * v / mx; i ? g.lineTo(x, y) : g.moveTo(x, y); });
+  g.lineTo(w, h); g.lineTo(0, h); g.closePath(); g.fillStyle = color; g.globalAlpha = .25; g.fill(); g.globalAlpha = 1;
+  g.beginPath(); series.forEach((v, i) => { const x = i / (series.length - 1) * w, y = h - 2 - (h - 4) * v / mx; i ? g.lineTo(x, y) : g.moveTo(x, y); });
+  g.strokeStyle = color; g.lineWidth = 1.2; g.stroke();
+  const x = t / (series.length - 1) * w; g.fillStyle = C.gold; g.fillRect(x - 1, 0, 2, h);
+}
+const shareSeries = SECT.map(s => SECTOT[s.i].map((v, t) => v / TOT[t] * 100));
+function renderRealms(t) {
+  let html = `<p class="prose" style="margin:0 0 4px">每个行业是一国，面积按市值。小图是该国2000年以来占全图的份额，金色竖线是当前时间。</p>`;
+  for (const f of FAM_ORDER) {
+    const list = SECT.filter(s => s.f === f).sort((a, b) => SECTOT[b.i][t] - SECTOT[a.i][t]);
+    html += `<div class="fam">${FAM[f]}</div>`;
+    for (const s of list) {
+      const sh = SECTOT[s.i][t] / TOT[t] * 100;
+      html += `<button class="srow" data-sec="${s.i}"><span><span class="sw" style="background:${chip(s)}"></span>${s.n}${THEMES[s.k] ? '<span class="pill">名单</span>' : ''}</span><canvas data-spark="${s.i}"></canvas><span class="p num">${SECTOT[s.i][t] > 0 ? fmtPct(sh) : '—'}</span></button>`;
+    }
+  }
+  pages.realms.innerHTML = html;
+  pages.realms.querySelectorAll('canvas[data-spark]').forEach(cv => { const s = SECT[+cv.dataset.spark]; sparkline(cv, shareSeries[s.i], t, chip(s)); });
+  pages.realms.querySelectorAll('[data-sec]').forEach(b => b.onclick = () => select({ type: 'sec', k: +b.dataset.sec }));
+}
+function bindRows(root) { root.querySelectorAll('[data-co]').forEach(b => b.onclick = () => select({ type: 'co', j: +b.dataset.co })); }
+function bigChart(cv, series, t, color, opts = {}) {
+  const w = cv.clientWidth, h = cv.clientHeight; if (!w) return; cv.width = w * DPR; cv.height = h * DPR;
+  const g = cv.getContext('2d'); g.setTransform(DPR, 0, 0, DPR, 0, 0);
+  const L = 54, R = 8, Tp = 8, B = 20, iw = w - L - R, ih = h - Tp - B;
+  const vals = series.filter(v => v > 0); const mx = opts.max || (vals.length ? Math.max(...vals) : 1) * 1.08;
+  const X = i => L + iw * i / (series.length - 1), Y = v => Tp + ih - ih * v / mx;
+  g.font = `11px ${css('--sans')}`; g.fillStyle = C.fg3; g.strokeStyle = C.line; g.lineWidth = 1; g.textAlign = 'right'; g.textBaseline = 'middle';
+  const ticks = d3.ticks(0, mx, 3);
+  for (const v of ticks) { const y = Y(v); g.beginPath(); g.moveTo(L, y); g.lineTo(w - R, y); g.stroke(); g.fillText(opts.fmt ? opts.fmt(v) : v, L - 6, y); }
+  g.textAlign = 'center'; g.textBaseline = 'alphabetic';
+  for (let y = 2000; y <= 2025; y += 5) g.fillText(String(y), X(MONTHS.indexOf(`${y}-01`)), h - 4);
+  const i0 = series.findIndex(v => v > 0); let i1 = series.length - 1; while (i1 > 0 && !(series[i1] > 0)) i1--;
+  if (opts.area && i0 >= 0) { g.beginPath(); g.moveTo(X(i0), Y(0)); for (let i = i0; i <= i1; i++) g.lineTo(X(i), Y(series[i] > 0 ? series[i] : 0)); g.lineTo(X(i1), Y(0)); g.closePath(); g.globalAlpha = .18; g.fillStyle = color; g.fill(); g.globalAlpha = 1; }
+  g.beginPath(); let on = false;
+  series.forEach((v, i) => { if (v > 0) { const x = X(i), y = Y(v); on ? g.lineTo(x, y) : g.moveTo(x, y); on = true; } else on = false; });
+  g.strokeStyle = color; g.lineWidth = 1.6; g.stroke();
+  g.strokeStyle = C.gold; g.lineWidth = 2; g.beginPath(); g.moveTo(X(t), Tp); g.lineTo(X(t), Tp + ih); g.stroke();
+  if (series[t] > 0) { g.fillStyle = C.gold; g.beginPath(); g.arc(X(t), Y(series[t]), 3.5, 0, Math.PI * 2); g.fill(); }
+}
+function renderDetail(t) {
+  const P = pages.detail;
+  if (!selected) { P.innerHTML = '<p class="empty">点地图上的一块，或在上方搜索公司，这里会显示它的版图变迁。</p>'; return; }
+  if (selected.type === 'sec') {
+    const s = SECT[selected.k], ser = shareSeries[s.i];
+    const pk = ser.indexOf(Math.max(...ser));
+    const members = ranking(t).arr.filter(([o]) => secAt(o, t) === s.i);
+    const note = s.k === 'ai' ? '本项目自定义的板块：光模块、AI服务器、AI芯片、算力PCB与数据中心等20家公司，2023年1月起从电子、通信、计算机、半导体中划出。'
+      : s.k === 'baijiu' ? '本项目按名单划出的19家白酒公司，其余酒饮料公司在“食品饮料”。'
+      : s.k === 'appl' ? '本项目按名单划出的26家家电公司；证监会把它们分在电气机械或电子设备制造。'
+      : s.k === 'semi' ? '本项目按名单划出的64家芯片设计、制造、封测、设备与材料公司；其余电子公司仍在“电子”。' : '';
+    P.innerHTML = `<div class="range">${FAM[s.f]}</div><h2 class="sec"><span class="sw" style="background:${chip(s)};width:14px;height:14px"></span>${s.n}</h2>
+      ${note ? `<p class="prose">${note}</p>` : ''}
+      <dl class="facts num"><dt>${ym(t)}</dt><dd>${SECTOT[s.i][t] > 0 ? `${fmtYi(SECTOT[s.i][t])} · 占全图 ${fmtPct(ser[t])}` : '此时尚无'}</dd>
+      <dt>公司数</dt><dd>${members.length} 家</dd>
+      <dt>版图最大</dt><dd>${ym(pk)}，占 ${fmtPct(ser[pk])}</dd></dl>
+      <canvas class="chart" id="dchart"></canvas>
+      <div class="card"><div class="label">${ym(t)} · 该国前十</div><div class="rows">${members.slice(0, 10).map(([o], i) => coRow(o, t, i + 1)).join('') || '<p class="empty">此时没有公司</p>'}</div></div>`;
+    bigChart(document.getElementById('dchart'), ser, t, chip(s), { fmt: v => v + '%', area: true });
+    bindRows(P); return;
+  }
+  const o = CO[selected.j]; const tt = Math.max(o.a, Math.min(o.b, t));
+  const s = SECT[secAt(o, tt)];
+  const series = MONTHS.map((_, i) => capAt(o, i));
+  const pk = series.indexOf(Math.max(...series));
+  const names = [...o.ren.map(r => r[1]), o.name].filter((v, i, a) => a.indexOf(v) === i);
+  const trail = o.sc.map(([m, k], i) => `<span><span class="sw" style="background:${chip(SECT[k])}"></span>${SECT[k].n} · ${i ? ymShort(m) + '起' : ymShort(Math.max(m, o.a)) + '起'}</span>`).join('');
+  const alive = t >= o.a && t <= o.b;
+  const r = alive ? ranking(t).pos.get(o.j) : null;
+  const estTxt = o.est.length ? `<p class="prose" style="font-size:13px"><span class="pill warn" style="margin:0 6px 0 0">估算</span>${o.est.map(([x, y]) => `${ymShort(x)}–${ymShort(y)}`).join('、')} 缺少总股本数据，市值按流通股本或成交额估算，图上用斜线标出。</p>` : '';
+  P.innerHTML = `<div class="range">${o.code} · ${exch(o)}市${o.b < LAST ? ' · 已退市或被合并' : ''}</div>
+    <h2 class="sec">${alive ? nameAt(o, t) : o.name}</h2>
+    ${names.length > 1 ? `<p class="prose" style="margin-top:4px">名称先后：${names.join(' → ')}</p>` : ''}
+    <dl class="facts num">
+      <dt>${ym(t)}</dt><dd>${alive ? `${fmtYi(capAt(o, t))} · 全图第 ${r} 位 · 占 ${fmtPct(capAt(o, t) / TOT[t] * 100)}` : t < o.a ? `尚未上市（${ym(o.a)}起有数据）` : `已退市（最后在图上：${ym(o.b)}）`}</dd>
+      <dt>市值最高</dt><dd>${ym(pk)}，${fmtYi(series[pk])}</dd>
+      <dt>在图上</dt><dd>${ym(o.a)} – ${o.b < LAST ? ym(o.b) : '至今'}</dd>
+    </dl>
+    <canvas class="chart" id="dchart"></canvas>
+    <div class="card"><div class="label">疆域归属</div><div class="trail">${trail}</div></div>
+    ${estTxt}
+    ${!alive ? `<p style="margin-top:12px"><button class="linkbtn" id="jump">跳到${t < o.a ? '上市' : '退市前'}的月份</button></p>` : ''}`;
+  bigChart(document.getElementById('dchart'), series, t, chip(s), { fmt: v => v >= 10000 ? (v / 10000) + '万亿' : v + '亿' });
+  const j = document.getElementById('jump'); if (j) j.onclick = () => { stop(); setTime(t < o.a ? o.a : o.b, true); };
+}
+function select(sel) {
+  selected = sel; showTab('detail'); draw();
+  if (sel.type === 'co') {
+    const o = CO[sel.j]; const t = Math.round(T);
+    if (t < o.a || t > o.b) { /* 让用户自己决定是否跳转 */ }
+  }
+}
+
+// ---------------------------------------------------------------- 搜索
+const SEARCH = CO.map(o => ({ o, keys: [o.name, ...o.ren.map(r => r[1]), o.code].join(' ').toLowerCase() }));
+function maxCap(o) { if (o._mx === undefined) { let m = 0; for (let t = o.a; t <= o.b; t++) m = Math.max(m, capAt(o, t)); o._mx = m; } return o._mx; }
+const sIn = document.getElementById('search'), sBox = document.getElementById('suggest');
+let sItems = [], sOn = -1;
+sIn.addEventListener('input', () => {
+  const q = sIn.value.trim().toLowerCase();
+  if (!q) { sBox.hidden = true; return; }
+  const t = Math.round(T);
+  sItems = SEARCH.filter(x => x.keys.includes(q)).map(x => x.o)
+    .sort((a, b) => ((b.name.toLowerCase() === q) - (a.name.toLowerCase() === q)) || (maxCap(b) - maxCap(a))).slice(0, 8);
+  sOn = -1;
+  if (!sItems.length) { sBox.innerHTML = '<div style="padding:10px 12px;color:var(--fg-3)">没有找到。本图只收沪深A股（不含北交所）。</div>'; sBox.hidden = false; return; }
+  sBox.innerHTML = sItems.map((o, i) => {
+    const s = SECT[secAt(o, o.b)];
+    const meta = `${ymShort(o.a)}–${o.b < LAST ? ymShort(o.b) + ' 退市' : '至今'} · ${s.n}`;
+    const alias = o.ren.length ? ` · 曾用名 ${o.ren.map(r => r[1]).join('、')}` : '';
+    return `<button data-i="${i}"><span class="n">${o.name}</span><span class="c num">${o.code}</span><span class="m">${meta}${alias}</span></button>`;
+  }).join('');
+  sBox.hidden = false;
+  sBox.querySelectorAll('button').forEach(b => b.onclick = () => pick(sItems[+b.dataset.i]));
+});
+sIn.addEventListener('keydown', e => {
+  if (sBox.hidden || !sItems.length) return;
+  if (e.key === 'ArrowDown' || e.key === 'ArrowUp') { e.preventDefault(); sOn = (sOn + (e.key === 'ArrowDown' ? 1 : -1) + sItems.length) % sItems.length; sBox.querySelectorAll('button').forEach((b, i) => b.classList.toggle('on', i === sOn)); }
+  if (e.key === 'Enter') { e.preventDefault(); pick(sItems[Math.max(0, sOn)]); }
+  if (e.key === 'Escape') sBox.hidden = true;
+});
+document.addEventListener('click', e => { if (!document.getElementById('searchbox').contains(e.target)) sBox.hidden = true; });
+function pick(o) {
+  sBox.hidden = true; sIn.value = o.name; stop();
+  const t = Math.round(T);
+  if (t < o.a || t > o.b) setTime(o.b < LAST ? o.b : Math.max(o.a, t), true);
+  select({ type: 'co', j: o.j });
+}
+
+// ---------------------------------------------------------------- 资料与边界
+pages.notes.innerHTML = `
+<h3>这张图画的是什么</h3>
+<p>每个“国”是一个行业，面积等于该行业所有公司在月末的总市值之和；国内的每座“城”是一家公司。每月取最后一个交易日，2000年1月到2026年10月共322个月。较小的公司合并成带斜线的“其余N家”。</p>
+<h3>数据从哪里来</h3>
+<ul>
+<li>每日价格（含已退市公司）：<a href="https://github.com/chenditc/investment_data" target="_blank" rel="noopener">chenditc/investment_data</a> 的 qlib 数据包，整合了 Wind、Tushare 等来源，2000年起。</li>
+<li>总市值与总股本：<a href="https://github.com/L2Wscorpio/ashare-market-data" target="_blank" rel="noopener">L2Wscorpio/ashare-market-data</a> 的估值表，2000年起。</li>
+<li>流通股本、逐月证监会行业分类、公司名称：<a href="https://github.com/noblechang/a-share-data" target="_blank" rel="noopener">noblechang/a-share-data</a>（BaoStock 数据快照，2010年起，含退市股）。</li>
+</ul>
+<h3>怎么算的</h3>
+<ul>
+<li>市值 = 月末收盘价 × 总股本。总股本按行情软件的通行口径，含H股等境外股份，按A股价格折算。所以工商银行、中国石油这类A+H公司的版图偏大，“本图合计”通常比交易所公布的A股市值高一成左右。</li>
+<li>第二个来源的总股本在2026年5月以前有不少错误（有的差10倍以上）。本图用流通股本做下限交叉校验，并修正了只持续一两个月的来回跳变；仍可能有个别公司个别月份不准。</li>
+<li>${CO.filter(o => o.est.length).length} 家公司部分月份没有总股本：2010年以后用流通股本代替（锁定期按解禁后的股本回填），2010年以前按同期小盘股“成交额/市值”的比例由成交额推算。这些月份在图上画斜线。估算部分在2000年约占全图13%，2010年后不到3%，2020年后不到1.5%。</li>
+</ul>
+<h3>行业怎么分</h3>
+<ul>
+<li>基础是证监会行业分类（2012年版，约80个大类），合并成30个国。2013年以前统一用公司最早的2012版分类；2013年起按当月分类，公司转行时会从一国划到另一国。</li>
+<li>白酒（19家）、家电（26家）、半导体（64家）、AI算力（20家，2023年1月起）是本项目按公司名单划出的，名单在“诸国”里带“名单”标记。另有十来家公司按主业做了调整，例如东方财富2016年起归证券，中国中车归机械。</li>
+<li>借壳上市的券商（海通、长江、国元、广发等），借壳以前按壳公司的名称和行业显示。</li>
+</ul>
+<h3>没有画进来的</h3>
+<ul>
+<li>1990–1999年：没有能免费取得的逐股市值数据，只在“此时”里用文字讲。</li>
+<li>北京证券交易所、B股、2026年9月18日之后上市的6家新股（缺股本数据）。</li>
+</ul>
+<h3>哪里可能不准</h3>
+<ul>
+<li>名称：一律用公司现名或退市前的最后名称；约三十家知名公司按改名时间显示旧名（如中国南车、青岛海尔、国泰君安、苏宁电器）。其余公司早年的名字可能和图上不同。</li>
+<li>“退市”包括被吸收合并（如中国北车、海通证券），${CO.filter(o => o.b < LAST).length} 家。</li>
+<li>本图适合看行业版图的大势，不宜当作个股数据来源，也不构成投资建议。时代解说由 AI（Claude）编写，可能有错漏。</li>
+</ul>
+<p class="foot">最后一帧：2026年10月30日收盘。<br><a href="video.html">观看使用讲解视频（4分38秒）</a> · <a href="https://github.com/wanglu2016/agu-jiangyu" target="_blank" rel="noopener">源代码与离线版</a></p>`;
+
+// ---------------------------------------------------------------- 启动
+refreshColors();
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => { refreshColors(); draw(); drawTrack(); renderPanels(); });
+new MutationObserver(() => { refreshColors(); draw(); drawTrack(); renderPanels(); }).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+const h0 = location.hash.slice(1); const i0 = MONTHS.indexOf(h0); if (i0 >= 0) T = i0;
+window.addEventListener('hashchange', () => { const i = MONTHS.indexOf(location.hash.slice(1)); if (i >= 0 && i !== Math.round(T)) { stop(); setTime(i, false); } });
+window.addEventListener('resize', () => { resize(); });
+new ResizeObserver(() => resize()).observe(stage);
+setPlayIcon();
+onTimeChange(false);
+resize();
+if (document.fonts && document.fonts.load) {
+  const txt = SECT.map(s => s.n + s.short).join('') + '0123456789.%万亿';
+  Promise.all([document.fonts.load(`900 24px "Noto Serif SC"`, txt), document.fonts.load(`500 13px "Noto Sans SC"`, '0123456789.%万亿')]).catch(() => {}).then(() => { draw(); drawTrack(); });
+  document.fonts.ready.then(() => { draw(); drawTrack(); });
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,6 @@
+{
+  "name": "agu-jiangyu-tools",
+  "private": true,
+  "description": "预计算每月版图（幂图站点与权重）",
+  "dependencies": { "d3": "7.9.0", "d3-voronoi-map": "2.1.1", "d3-weighted-voronoi": "1.1.3" }
+}

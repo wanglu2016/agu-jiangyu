@@ -1,0 +1,7 @@
+tools/input/
+tools/out/
+tools/node_modules/
+tools/package-lock.json
+__pycache__/
+.DS_Store
+dist/
