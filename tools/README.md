@@ -23,13 +23,19 @@ python3 postfix.py           # 4. 修正股本序列的短期跳变、停牌期�
 python3 export.py            # 5. 网页数据与每月版图的城市选择 → out/page_data.json、out/frames_sel.json
 node layout.js               # 6. 预计算每月版图（幂图站点与权重，前后月份接续）→ out/layout.json
 python3 make_web_assets.py   # 7. 合成 ../assets/data.js
-python3 make_chars.py        # 8. 统计页面和数据用字
-python3 make_fonts.py        # 9. 裁剪字体 → ../assets/fonts/*.woff2
+python3 make_extra.py        # 8. 名义GDP、候选国名单、观察名单 → ../assets/extra.js
+node candidates.js           # 9. 2023年1月起带候选国的版图（从原版图接续）→ ../assets/candidates.js
+python3 make_chars.py        # 10. 统计页面和数据用字
+python3 make_fonts.py        # 11. 裁剪字体 → ../assets/fonts/*.woff2
 ```
+
+第8步以后只依赖已经生成的 `../assets/data.js`，不需要原始行情数据：改候选国名单、改页面文字，从第8步或第10步重新运行即可。
 
 ## 文件
 
 - `qlibload.py`：读取 qlib 二进制行情。
 - `sectors.py`：证监会行业大类到30个“国”的对应，旧版分类的关键词规则，白酒、家电、半导体、AI算力的公司名单。
 - `build_final.py` 里还有两张手工表：借壳上市前的壳公司（名称、行业）和约三十家知名公司的曾用名。
+- `make_extra.py`：年度名义GDP（来源和接续方法写在注释里），创新药、机器人、储能三个候选国的公司名单，低空观察名单，科技环节分组。名单按公司名称填写，脚本会从 `data.js` 查代码，查不到的会打印出来。
+- `candidates.js`：把候选国的公司从原来的国里划出，按 `export.py` 的规则重新选城，再用 `layout.js` 的算法从2022年12月的版图接续算到最后一个月，所以其余国家的位置基本不动。
 - 处理方法和已知问题见网页里的“资料与边界”。

@@ -93,10 +93,11 @@ button { cursor: pointer; }
 
 /* 时间轴 */
 #timebar { grid-column: 1; grid-row: 2; background: var(--panel); border-top: 1px solid var(--line); padding: 8px max(16px, env(safe-area-inset-right, 0px)) 10px max(16px, env(safe-area-inset-left, 0px)); display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 12px; align-items: center; }
-#playbox { display: flex; flex-direction: column; gap: 6px; align-items: center; }
-#play { width: 42px; height: 42px; border-radius: 50%; border: 1.5px solid var(--malachite); background: transparent; color: var(--malachite); display: grid; place-items: center; }
+#playbox { display: flex; flex-direction: column; gap: 5px; align-items: center; min-width: 62px; }
+#play { width: 40px; height: 40px; border-radius: 50%; border: 1.5px solid var(--malachite); background: transparent; color: var(--malachite); display: grid; place-items: center; }
 #play svg { width: 16px; height: 16px; fill: currentColor; }
-#speed { border: 0; background: transparent; color: var(--fg-3); font-size: 11.5px; padding: 0; }
+#speed, #tmode { border: 0; background: transparent; color: var(--fg-3); font-size: 11.5px; padding: 0; white-space: nowrap; }
+#tmode { color: var(--malachite); text-decoration: underline; text-underline-offset: 3px; }
 #trackwrap { position: relative; min-width: 0; }
 #track { width: 100%; height: 78px; display: block; cursor: pointer; touch-action: none; border-radius: 6px; }
 #trackwrap .hint { position: absolute; right: 0; top: -2px; font-size: 11px; color: var(--fg-3); pointer-events: none; }
@@ -155,6 +156,25 @@ h2.sec { font-family: var(--serif); font-weight: 900; font-size: 21px; margin: 0
 .notes code { font-size: 12px; background: var(--panel-2); padding: 1px 4px; border-radius: 4px; }
 .foot { margin-top: 18px; font-size: 12px; color: var(--fg-3); line-height: 1.6; }
 
+#toTide { margin-left: auto; padding: 8px 10px 9px; font-size: 13.5px; color: var(--malachite); text-decoration: none; white-space: nowrap; font-weight: 700; }
+#toTide::after { content: ""; display: inline-block; width: 6px; height: 6px; margin-left: 5px; border-top: 1.5px solid currentColor; border-right: 1.5px solid currentColor; transform: rotate(45deg) translateY(-1px); }
+#toTide:hover { text-decoration: underline; text-underline-offset: 3px; }
+.prose.sm { font-size: 13px; line-height: 1.75; margin-top: 8px; }
+.prose.dim { color: var(--fg-3); font-size: 12px; }
+.prose b { color: var(--fg); }
+.seahead { display: flex; align-items: baseline; gap: 10px; }
+.seav { font-size: 30px; font-weight: 700; line-height: 1; letter-spacing: -0.01em; }
+.seaw { font-size: 12.5px; color: var(--fg-2); }
+.gauge { position: relative; height: 8px; margin-top: 10px; border-radius: 4px; background: var(--panel-2); border: 1px solid var(--line); }
+.gauge .band { position: absolute; top: -1px; bottom: -1px; background: color-mix(in srgb, var(--gold) 34%, transparent); }
+.gauge .mk { position: absolute; top: -5px; width: 3px; height: 18px; margin-left: -1.5px; border-radius: 2px; background: var(--fg); box-shadow: 0 0 0 2px var(--panel); }
+.gscale { position: relative; height: 16px; margin-top: 6px; font-size: 11px; color: var(--fg-3); }
+.gscale span { position: absolute; transform: translateX(-50%); }
+.gscale span:first-child { transform: none; }
+.gscale span:last-child { transform: translateX(-100%); }
+.fam .linkbtn { letter-spacing: 0; margin-left: 8px; font-size: 12px; }
+.pill.cand { border-style: dashed; }
+
 @media (max-width: 900px) {
   body { overflow: auto; }
   #app { position: static; display: block; padding-left: 0; padding-right: 0; padding-top: env(safe-area-inset-top, 0px); }
@@ -201,6 +221,7 @@ h2.sec { font-family: var(--serif); font-weight: 900; font-size: 21px; margin: 0
     <div id="playbox">
       <button id="play" aria-label="播放"><svg viewBox="0 0 16 16" id="playicon"><path d="M4 2.5v11l9-5.5z"/></svg></button>
       <button id="speed" aria-label="播放速度">每秒半年</button>
+      <button id="tmode" aria-label="切换时间轴显示的内容" title="时间轴可以显示各国份额，或显示海平面（市值÷GDP）">看海平面</button>
     </div>
     <div id="trackwrap">
       <canvas id="track" aria-label="时间轴：拖动选择年月"></canvas>
@@ -217,6 +238,7 @@ h2.sec { font-family: var(--serif); font-weight: 900; font-size: 21px; margin: 0
       <button role="tab" data-tab="realms" aria-selected="false">诸国</button>
       <button role="tab" data-tab="detail" aria-selected="false">详情</button>
       <button role="tab" data-tab="notes" aria-selected="false">资料与边界</button>
+      <a id="toTide" href="guanchao.html" title="从这张图里读出的六条规律">观潮</a>
     </div>
     <div id="pages">
       <section class="page" data-page="now"></section>
@@ -230,13 +252,19 @@ h2.sec { font-family: var(--serif); font-weight: 900; font-size: 21px; margin: 0
 <script src="assets/lib/d3.min.js"></script>
 <script src="assets/lib/d3-weighted-voronoi.min.js"></script>
 <script src="assets/data.js"></script>
+<script src="assets/extra.js"></script>
+<script src="assets/candidates.js"></script>
 <script>
 "use strict";
 // ---------------------------------------------------------------- 数据
 const DATA = window.AGU_DATA;
 const LAY = window.AGU_LAYOUT;
 const MONTHS = DATA.months, NM = MONTHS.length, LAST = NM - 1;
+const EX = window.AGU_EXTRA, CANDL = window.AGU_CAND;
+const K0 = DATA.sectors.length, T0 = CANDL.t0;   // T0：候选国出现的月份
 const SECT = DATA.sectors.map(([k, n, f], i) => ({ i, k, n, f }));
+EX.cand.forEach((c, i) => SECT.push({ i: K0 + i, k: c.k, n: c.n, f: c.f, cand: true, note: c.note, parent: c.parent, cond: c.cond, count: c.codes.length }));
+let candOn = true;
 const SHORT = { power: '新能源', media: '传媒', chem: '化工', metal: '有色', defense: '军工', transp: '交运', util: '公用', agri: '农林牧渔', light: '轻工纺服', trade: '商贸服务', food: '食品饮料', broker: '证券' };
 const FAM = { fin: '金融', prop: '地产建筑', cons: '消费', mfg: '制造', tech: '科技', cyc: '周期资源', infra: '公用交运' };
 const FAM_ORDER = ['fin', 'prop', 'cons', 'mfg', 'tech', 'cyc', 'infra'];
@@ -246,8 +274,9 @@ const HUE = { bank: [6, 62], broker: [24, 50], insur: [352, 42], estate: [40, 58
   auto: [198, 34], power: [134, 38], mach: [172, 26], defense: [212, 16],
   elec: [214, 46], semi: [236, 40], ai: [264, 44], telecom: [190, 44], soft: [224, 32], media: [286, 26],
   oil: [22, 30], coal: [30, 6], metal: [38, 46], steel: [206, 10], chem: [70, 32], util: [180, 30], transp: [246, 16] };
+EX.cand.forEach(c => { HUE[c.k] = c.hue; });
 SECT.forEach(s => { s.h = HUE[s.k][0]; s.s = HUE[s.k][1]; s.short = SHORT[s.k] || s.n; });
-const SECTOT = DATA.sec, TOT = DATA.tot, CNT = DATA.cnt;
+const TOT = DATA.tot, CNT = DATA.cnt;
 const THEMES = { baijiu: '白酒', appl: '家电', semi: '半导体', ai: 'AI算力' };
 
 // 公司：[code, name, renames, sectorChanges, a, b, estRanges, isSH]
@@ -259,7 +288,38 @@ DATA.co.forEach((c, j) => {
   off += o.b - o.a + 1; CO.push(o);
 });
 function capAt(o, t) { if (t < o.a || t > o.b) return 0; return Math.pow(10, Q[o.off + t - o.a] / 9000 - 2); }
-function secAt(o, t) { let s = o.sc[0][1]; for (const [m, k] of o.sc) { if (m <= t) s = k; else break; } return s; }
+function baseSec(o, t) { let s = o.sc[0][1]; for (const [m, k] of o.sc) { if (m <= t) s = k; else break; } return s; }
+function secAt(o, t) { return (candOn && o.cand >= 0 && t >= T0) ? o.cand : baseSec(o, t); }
+// 候选国：名单里的公司从 T0 起划出母国。两套合计都备好，开关时切换。
+const byCode = new Map(CO.map(o => [o.code, o]));
+CO.forEach(o => { o.cand = -1; });
+EX.cand.forEach((c, i) => c.codes.forEach(code => { const o = byCode.get(code); if (o) o.cand = K0 + i; }));
+const SEC_BASE = DATA.sec.concat(EX.cand.map(() => new Array(NM).fill(0)));
+const SEC_CAND = SEC_BASE.map(a => a.slice());
+for (const o of CO) if (o.cand >= 0) for (let t = Math.max(T0, o.a); t <= o.b; t++) { const v = capAt(o, t); SEC_CAND[baseSec(o, t)][t] -= v; SEC_CAND[o.cand][t] += v; }
+let SECTOT = SEC_CAND;
+const frameAt = f => (candOn && f >= T0) ? CANDL.frames[f - T0] : LAY.frames[f];
+
+// ---------------------------------------------------------------- 海平面与地价指数
+// 海平面 = 全图市值 ÷ 近一年名义GDP（年度GDP在月份之间线性插值）。
+const GDP = EX.gdp;
+function gdpAt(t) { const y = +MONTHS[t].slice(0, 4), m = +MONTHS[t].slice(5); return GDP[y - 1] + (GDP[y] - GDP[y - 1]) * m / 12; }
+const SEA = MONTHS.map((_, t) => TOT[t] / gdpAt(t) * 100);
+// 地价指数：只算前后两个月都在图上的公司，所以新上市带来的新面积不计入。含增发，不含分红。
+const LAND = new Float64Array(NM); LAND[0] = 1;
+{ let prev = new Float64Array(CO.length); for (const o of CO) prev[o.j] = capAt(o, 0);
+  for (let t = 1; t < NM; t++) { const cur = new Float64Array(CO.length); let a = 0, b = 0;
+    for (const o of CO) { const v = capAt(o, t); cur[o.j] = v; if (v > 0 && prev[o.j] > 0) { a += prev[o.j]; b += v; } }
+    LAND[t] = LAND[t - 1] * (a > 0 ? b / a : 1); prev = cur; } }
+const SEA_LO = 60, SEA_HI = 80, H3 = 36;
+function seaFacts(t) {
+  const below = SEA.filter(v => v < SEA[t]).length / NM * 100;
+  if (t + H3 <= LAST) { const mult = LAND[t + H3] / LAND[t]; return { below, real: true, mult, ann: (Math.pow(mult, 1 / 3) - 1) * 100 }; }
+  const t06 = MONTHS.indexOf('2006-01'), rs = [];
+  for (let s = t06; s + H3 <= LAST; s++) if (Math.abs(SEA[s] - SEA[t]) <= 5) rs.push((Math.pow(LAND[s + H3] / LAND[s], 1 / 3) - 1) * 100);
+  rs.sort((x, y) => x - y);
+  return { below, real: false, n: rs.length, med: rs.length ? d3.median(rs) : null, neg: rs.length ? rs.filter(x => x < 0).length / rs.length * 100 : null };
+}
 function nameAt(o, t) { for (const [u, n] of o.ren) if (t <= u) return n; return o.name; }
 function estAt(o, t) { for (const [x, y] of o.est) if (t >= x && t <= y) return true; return false; }
 function exch(o) { return o.sh ? '沪' : '深'; }
@@ -287,7 +347,7 @@ const ERAS = [
   { a: '2014-01', b: '2016-12', t: '杠杆牛与股灾', x: '2014年11月沪港通开通、央行降息，融资买入推动了一轮快牛，证券的版图从全图约3%扩到约5%。南车、北车在2015年6月合并为中国中车，月底市值约5000亿元。6月12日上证指数到达5178点后急跌，政府组织救市。2016年1月熔断机制实施，四天里两次触发后即暂停。' },
   { a: '2017-01', b: '2021-02', t: '核心资产', x: '外资经沪深港通持续流入，盈利稳定的消费和医药龙头被称为“核心资产”。2018年中美贸易摩擦带来一整年下跌；2019年7月22日科创板开市。疫情之后流动性宽松，医药的版图在2020年7月达到全图约8.7%；2020年6月贵州茅台首次超过工商银行，成为全图市值最大的公司，2021年2月市值约2.7万亿元，白酒约占全图6%。' },
   { a: '2021-03', b: '2022-12', t: '新能源', x: '2020年9月中国提出碳达峰、碳中和目标。宁德时代、隆基绿能、阳光电源等组成的“电力设备与新能源”，从2020年初占全图约3%扩到2022年7月的7.5%，比亚迪带动汽车版图扩张。消费龙头在2021年2月见顶后回落。2021年11月北京证券交易所开市（本图未计入北交所）。' },
-  { a: '2023-01', b: '2024-12', t: 'AI与“中特估”', x: '2022年底ChatGPT发布后，光模块、AI服务器、AI芯片公司成为新热点，本图从2023年1月起把这批公司单列为“AI算力”。同年，“中国特色估值体系”带动中国移动、中国海油、中国电信等央企重估。2023年2月全面实行注册制；2024年初小盘股大跌，9月24日一揽子政策出台后市场急涨。' },
+  { a: '2023-01', b: '2024-12', t: 'AI与“中特估”', x: '2022年底ChatGPT发布后，光模块、AI服务器、AI芯片公司成为新热点，本图从2023年1月起把这批公司单列为“AI算力”，同时用虚线划出创新药、机器人、储能三个还在形成中的候选国。同年，“中国特色估值体系”带动中国移动、中国海油、中国电信等央企重估。2023年2月全面实行注册制；2024年初小盘股大跌，9月24日一揽子政策出台后市场急涨。' },
   { a: '2025-01', b: '2026-10', t: '芯片与算力', x: '2025年初国泰君安吸收合并海通证券。此后半导体和AI算力成为扩张最快的版图：摩尔线程、沐曦在2025年12月上市；2026年7月27日长鑫科技在科创板上市，月底市值约3.6万亿元，超过工商银行成为全图最大的公司。2026年6月，电子、半导体和AI算力合计约占全图26%；下半年科技股大幅回落，到10月底降到约19%，银行重新回到15%以上。' },
 ];
 const PROLOGUE = { t: '序章：从老八股到千家', r: '1990–1999', x: '1990年12月19日上海证券交易所开业，首批8只股票被称为“老八股”；深圳证券交易所1991年7月3日正式开业。上市公司起初多由国企改制而来，股份分成可以交易的社会公众股和不能流通的国有股、法人股。到1999年底，两市上市公司约950家。能免费取得的逐股市值数据从2000年开始，所以本图从2000年1月画起。' };
@@ -297,7 +357,7 @@ const EVENTS = [
   ['2008-11', '四万亿投资计划'], ['2009-10', '创业板开板'], ['2010-07', '农业银行上市'], ['2013-06', '银行间“钱荒”'],
   ['2014-11', '沪港通开通'], ['2015-06', '上证5178点后急跌；中国中车成立'], ['2016-01', '熔断机制四天后暂停'], ['2016-12', '深港通开通'],
   ['2018-03', '中美贸易摩擦开始'], ['2019-07', '科创板开市'], ['2020-06', '贵州茅台成为市值第一'], ['2020-08', '创业板注册制'],
-  ['2021-02', '消费龙头见顶'], ['2022-04', '中国海油A股上市'], ['2023-01', '本图单列“AI算力”'], ['2023-02', '全面注册制'],
+  ['2021-02', '消费龙头见顶'], ['2022-04', '中国海油A股上市'], ['2023-01', '本图单列“AI算力”，划出三个候选国'], ['2023-02', '全面注册制'],
   ['2024-04', '新“国九条”'], ['2024-09', '9·24一揽子政策'], ['2025-02', '海通证券并入国泰君安'], ['2025-12', '摩尔线程、沐曦上市'],
   ['2026-07', '长鑫科技上市'],
 ].map(([m, t]) => ({ m, t, i: MONTHS.indexOf(m) })).filter(e => e.i >= 0);
@@ -341,7 +401,7 @@ function hash01(n) { n = (n * 2654435761) >>> 0; return (n % 1000) / 1000; }
 const CLIP = LAY.clip, LW = LAY.W, LH = LAY.H;
 const wv = d3.weightedVoronoi().x(d => d.x).y(d => d.y).weight(d => d.w);
 function frameMaps(f) {
-  const fr = LAY.frames[f]; const m = new Map();
+  const fr = frameAt(f); const m = new Map();
   for (const c of fr) { if (c[1] === null) continue; const cells = new Map(); for (const z of c[4]) cells.set(z[0], z); m.set(c[0], { x: c[1], y: c[2], w: c[3], cells }); }
   return m;
 }
@@ -451,7 +511,14 @@ function draw() {
   }
   // 国界
   for (const c of g.countries) {
+    if (SECT[c.k].cand) continue;
     pathPoly(c.poly); ctx.strokeStyle = DARK ? 'rgba(220,214,196,.55)' : 'rgba(34,44,40,.62)'; ctx.lineWidth = 1.6; ctx.stroke();
+  }
+  // 候选国：先把实线国界盖掉，再画虚线
+  for (const c of g.countries) {
+    if (!SECT[c.k].cand) continue;
+    pathPoly(c.poly); ctx.strokeStyle = DARK ? '#16262d' : '#f3f1ea'; ctx.lineWidth = 3.4; ctx.stroke();
+    ctx.setLineDash([7, 4]); ctx.strokeStyle = DARK ? 'rgba(232,224,200,.9)' : 'rgba(34,44,40,.85)'; ctx.lineWidth = 1.7; ctx.stroke(); ctx.setLineDash([]);
   }
   pathPoly(CLIP); ctx.strokeStyle = DARK ? 'rgba(220,214,196,.7)' : 'rgba(34,44,40,.75)'; ctx.lineWidth = 2; ctx.stroke();
   // 日后退市
@@ -539,16 +606,16 @@ function tipHTML(c) {
   const t = geom.t, s = SECT[c.k];
   const sh = SECTOT[c.k][t] / TOT[t] * 100;
   if (c.id < 0) {
-    const fr = LAY.frames[t].find(x => x[0] === c.k);
+    const fr = frameAt(t).find(x => x[0] === c.k);
     const n = countIn(c.k, t);
     const shown = fr && fr[4] ? fr[4].filter(z => z[0] >= 0).length : 0;
-    return `<div class="t">${s.n}</div><div class="s">其余 ${Math.max(0, n - shown)} 家较小的公司</div><div class="s">${s.n}合计 ${fmtYi(SECTOT[c.k][t])} · 占全图 ${fmtPct(sh)}</div>`;
+    return `<div class="t">${s.n}${s.cand ? ' <span class="s">候选国</span>' : ''}</div><div class="s">其余 ${Math.max(0, n - shown)} 家较小的公司</div><div class="s">${s.n}合计 ${fmtYi(SECTOT[c.k][t])} · 占全图 ${fmtPct(sh)}</div>`;
   }
   const o = CO[c.id], v = capAt(o, t), r = ranking(t).pos.get(o.j);
   const old = nameAt(o, t) !== o.name ? `<div class="s">现名 ${o.name}</div>` : '';
   const est = estAt(o, t) ? '<div class="e">本月市值为估算值</div>' : '';
   const del = o.b < LAST ? `<div class="e">${ym(o.b)}后退市或被合并</div>` : '';
-  return `<div class="t">${nameAt(o, t)} <span class="s">${o.code}</span></div>${old}<div>${fmtYi(v)} · 全图第 ${r} 位 · ${fmtPct(v / TOT[t] * 100)}</div><div class="s">${s.n} · 该国合计 ${fmtYi(SECTOT[c.k][t])}（${fmtPct(sh)}）</div>${est}${del}`;
+  return `<div class="t">${nameAt(o, t)} <span class="s">${o.code}</span></div>${old}<div>${fmtYi(v)} · 全图第 ${r} 位 · ${fmtPct(v / TOT[t] * 100)}</div><div class="s">${s.n}${s.cand ? '（候选国）' : ''} · 该国合计 ${fmtYi(SECTOT[c.k][t])}（${fmtPct(sh)}）</div>${est}${del}`;
 }
 const countCache = new Map();
 function countIn(k, t) {
@@ -601,6 +668,8 @@ function drawTrack() {
   track.width = Math.round(TW * DPR); track.height = Math.round(TH * DPR);
   tctx.setTransform(DPR, 0, 0, DPR, 0, 0); tctx.clearRect(0, 0, TW, TH);
   const top = 12, bot = TH - 15, hgt = bot - top;
+  if (trackMode === 'sea') drawSeaTrack(top, bot, hgt);
+  else {
   // 分层面积：各国占全图的份额
   const acc = new Float64Array(NM);
   for (const k of stackOrder) {
@@ -610,6 +679,7 @@ function drawTrack() {
     for (let t = LAST; t >= 0; t--) tctx.lineTo(trackX(t), top + hgt * (acc[t] + SECTOT[k][t] / TOT[t]));
     tctx.closePath(); tctx.fillStyle = DARK ? `hsl(${s.h} ${s.s * 0.7}% 40%)` : `hsl(${s.h} ${s.s}% 66%)`; tctx.fill();
     for (let t = 0; t < NM; t++) acc[t] += SECTOT[k][t] / TOT[t];
+  }
   }
   // 年份
   tctx.fillStyle = C.fg3; tctx.font = `11px ${css('--sans')}`; tctx.textAlign = 'center'; tctx.textBaseline = 'alphabetic';
@@ -624,13 +694,38 @@ function drawTrack() {
   tctx.fillStyle = C.gold; tctx.beginPath(); tctx.arc(x, bot + 3, 4, 0, Math.PI * 2); tctx.fill();
   if (trackHover >= 0) {
     const hx = trackX(trackHover); tctx.strokeStyle = C.fg3; tctx.lineWidth = 1; tctx.setLineDash([2, 3]); tctx.beginPath(); tctx.moveTo(hx, top); tctx.lineTo(hx, bot); tctx.stroke(); tctx.setLineDash([]);
-    const ev = EVENTS.find(e => Math.abs(e.i - trackHover) <= 0); const label = ym(trackHover) + (ev ? ' · ' + ev.t : '');
+    const ev = EVENTS.find(e => Math.abs(e.i - trackHover) <= 0); const label = ym(trackHover) + (trackMode === 'sea' ? ' · 海平面 ' + Math.round(SEA[trackHover]) + '%' : '') + (ev ? ' · ' + ev.t : '');
     tctx.font = `12px ${css('--sans')}`; const w = tctx.measureText(label).width + 12;
     const lx = Math.max(2, Math.min(TW - w - 2, hx - w / 2));
     tctx.fillStyle = C.panel; tctx.globalAlpha = .92; tctx.fillRect(lx, 0, w, 15); tctx.globalAlpha = 1;
     tctx.fillStyle = C.fg; tctx.textAlign = 'left'; tctx.textBaseline = 'top'; tctx.fillText(label, lx + 6, 1);
   }
 }
+// 时间轴的第二种画法：海平面（全图市值 ÷ 近一年GDP），金色带是 60%–80% 的常见区间
+let trackMode = 'share';
+const SEA_MAX = 150;
+function drawSeaTrack(top, bot, hgt) {
+  const Y = v => bot - hgt * Math.min(v, SEA_MAX) / SEA_MAX;
+  tctx.fillStyle = DARK ? 'rgba(216,182,108,.16)' : 'rgba(143,100,24,.15)';
+  tctx.fillRect(trackX(0), Y(SEA_HI), trackX(LAST) - trackX(0), Y(SEA_LO) - Y(SEA_HI));
+  tctx.beginPath(); tctx.moveTo(trackX(0), bot);
+  for (let t = 0; t < NM; t++) tctx.lineTo(trackX(t), Y(SEA[t]));
+  tctx.lineTo(trackX(LAST), bot); tctx.closePath();
+  tctx.fillStyle = DARK ? 'hsl(190 34% 30% / .85)' : 'hsl(190 30% 58% / .8)'; tctx.fill();
+  tctx.beginPath(); for (let t = 0; t < NM; t++) { const x = trackX(t), y = Y(SEA[t]); t ? tctx.lineTo(x, y) : tctx.moveTo(x, y); }
+  tctx.strokeStyle = DARK ? 'hsl(190 40% 70%)' : 'hsl(192 45% 28%)'; tctx.lineWidth = 1.4; tctx.stroke();
+  tctx.font = `11px ${css('--sans')}`; tctx.fillStyle = C.fg2; tctx.textBaseline = 'middle';
+  const hi = SEA.indexOf(Math.max(...SEA)), lo = SEA.indexOf(Math.min(...SEA));
+  tctx.textAlign = 'left'; tctx.fillText(Math.round(SEA[hi]) + '%', trackX(hi) + 6, Y(SEA[hi]) + 5);
+  tctx.textAlign = 'center'; tctx.fillText(Math.round(SEA[lo]) + '%', trackX(lo), Y(SEA[lo]) - 8);
+  if (TW > 420) { tctx.textAlign = 'left'; tctx.fillStyle = C.gold; tctx.fillText('常见区间 60%–80%', trackX(0) + 6, (Y(SEA_HI) + Y(SEA_LO)) / 2); }
+}
+document.getElementById('tmode').onclick = function () {
+  trackMode = trackMode === 'share' ? 'sea' : 'share';
+  this.textContent = trackMode === 'share' ? '看海平面' : '看各国份额';
+  track.setAttribute('aria-label', trackMode === 'share' ? '时间轴：各国份额。拖动选择年月' : '时间轴：海平面。拖动选择年月');
+  drawTrack();
+};
 let dragTrack = false;
 function trackPick(e) { const r = track.getBoundingClientRect(); setTime(Math.round(trackT(e.clientX - r.left)), true); }
 track.addEventListener('pointerdown', e => { dragTrack = true; track.setPointerCapture(e.pointerId); stop(); trackPick(e); });
@@ -671,7 +766,7 @@ function setTime(t, settle) { T = t; onTimeChange(settle); }
 function onTimeChange(settle) {
   const ti = Math.round(T);
   document.getElementById('when').innerHTML = `${MONTHS[ti].slice(0, 4)}年<small>${+MONTHS[ti].slice(5)}月</small>`;
-  document.getElementById('sum').innerHTML = `本图合计 <b>${fmtYi(TOT[ti])}元</b> · <b>${CNT[ti].toLocaleString('zh-CN')}</b> 家公司`;
+  document.getElementById('sum').innerHTML = `本图合计 <b>${fmtYi(TOT[ti])}元</b> · <b>${CNT[ti].toLocaleString('zh-CN')}</b> 家公司 · <span style="white-space:nowrap">海平面 <b>${Math.round(SEA[ti])}%</b></span>`;
   draw(); drawTrack();
   if (ti !== lastPanelT && (settle || !playing || ti % 3 === 0)) { lastPanelT = ti; renderPanels(); updateSurvivor(); }
   if (settle) { try { history.replaceState(null, '', '#' + MONTHS[ti]); } catch (e) {} }
@@ -699,6 +794,26 @@ function coRow(o, t, i) {
   const v = capAt(o, t), s = SECT[secAt(o, t)];
   return `<button class="row" data-co="${o.j}"><span class="rk num">${i}</span><span class="nm"><span class="sw" style="background:${chip(s)}"></span>${nameAt(o, t)}<i>${s.short}</i></span><span class="v num">${fmtYi(v)}</span></button>`;
 }
+const sign = v => (v >= 0 ? '+' : '−') + Math.abs(v).toFixed(1);
+function seaCard(t) {
+  const f = seaFacts(t), v = SEA[t], pos = x => Math.min(100, x / SEA_MAX * 100);
+  const where = v < SEA_LO ? '低于常见区间' : v > SEA_HI ? '高于常见区间' : '在常见区间内';
+  let out;
+  if (f.real) out = `从这里出发，此后三年（到${ym(t + H3)}）老公司的市值合计变为 <b>${f.mult.toFixed(2)} 倍</b>，折合每年 ${sign(f.ann)}%。`;
+  else if (f.n >= 6) out = `此后三年还没有发生。2006年以来，从相近水位（上下5个点）出发的 ${f.n} 个月里，三年后老公司市值的年化变化中位数是 <b>${sign(f.med)}%</b>，其中 ${Math.round(f.neg)}% 的月份是下跌的。`;
+  else out = '此后三年还没有发生，历史上也很少有相近的水位可以参照。';
+  return `<div class="card"><div class="label">海平面 · 全图市值 ÷ 近一年GDP</div>
+    <div class="seahead"><span class="seav">${Math.round(v)}%</span><span class="seaw">${where}（60%–80%）</span></div>
+    <div class="gauge" role="img" aria-label="海平面 ${Math.round(v)}%，常见区间 60% 到 80%"><span class="band" style="left:${pos(SEA_LO)}%;width:${pos(SEA_HI) - pos(SEA_LO)}%"></span><span class="mk" style="left:${pos(v)}%"></span></div>
+    <div class="gscale num"><span style="left:0">0</span><span style="left:${pos(SEA_LO)}%">60</span><span style="left:${pos(SEA_HI)}%">80</span><span style="left:100%">150%</span></div>
+    <p class="prose sm">在本图的 ${NM} 个月里，${Math.round(f.below)}% 的月份水位比此时低。${out}</p>
+    <p class="prose sm dim">“老公司的市值”只算前后都在图上的公司，不算新上市的；含增发，不含分红。历史统计不代表未来。 <a class="linkbtn" href="guanchao.html#shuiwei">在“观潮”里看完整的水位图</a></p></div>`;
+}
+function topFate(t, top) {
+  if (t > LAST - 12) return '';
+  const then = d3.sum(top, x => x[1]), now = d3.sum(top, ([o]) => capAt(o, LAST)), gone = top.filter(([o]) => o.b < LAST).length;
+  return `<p class="prose sm">这十家当时合计占全图 ${fmtPct(then / TOT[t] * 100)}。到${ym(LAST)}，它们的市值合计是当时的 <b>${(now / then).toFixed(2)} 倍</b>${gone ? `（其中 ${gone} 家已退市或被合并，按零计，会低估）` : ''}，同期全图是 ${(TOT[LAST] / TOT[t]).toFixed(2)} 倍。 <a class="linkbtn" href="guanchao.html#jutou">看每一家的去向</a></p>`;
+}
 function renderNow(t) {
   const e = eraAt(t);
   const ev = EVENTS.filter(x => Math.abs(x.i - t) <= 2);
@@ -709,9 +824,10 @@ function renderNow(t) {
     <h2 class="sec">${e.t}</h2>
     <p class="prose">${e.x}</p>
     ${ev.length ? `<div class="card"><div class="label">前后两个月</div>${ev.map(x => `<div class="event"><span class="m num">${ymShort(x.i)}</span><span>${x.t}</span></div>`).join('')}</div>` : ''}
-    <div class="card"><div class="label">${ym(t)} · 全图市值前十</div><div class="rows">${top.map(([o], i) => coRow(o, t, i + 1)).join('')}</div></div>
+    ${seaCard(t)}
+    <div class="card"><div class="label">${ym(t)} · 全图市值前十</div><div class="rows">${top.map(([o], i) => coRow(o, t, i + 1)).join('')}</div>${topFate(t, top)}</div>
     ${pro}
-    <div class="card"><div class="label">使用讲解</div><a class="linkbtn" href="video.html">观看视频：怎么用、能看什么（4分38秒）</a></div>
+    <div class="card"><div class="label">读图</div><a class="linkbtn" href="guanchao.html">观潮：从这张图里读出的六条规律</a><br><a class="linkbtn" style="display:inline-block;margin-top:8px" href="video.html">观看视频：怎么用、能看什么（4分38秒）</a></div>
     <div class="card"><div class="label">年表</div>${ERAS.map(x => `<button class="linkbtn" style="display:block;margin:6px 0;text-align:left" data-goto="${x.a}">${x.a.slice(0, 4)}–${x.b.slice(0, 4)} ${x.t}</button>`).join('')}</div>`;
   bindRows(pages.now);
   pages.now.querySelectorAll('[data-goto]').forEach(b => b.onclick = () => { stop(); setTime(MONTHS.indexOf(b.dataset.goto), true); });
@@ -725,19 +841,38 @@ function sparkline(cv, series, t, color, max) {
   g.beginPath(); series.forEach((v, i) => { const x = i / (series.length - 1) * w, y = h - 2 - (h - 4) * v / mx; i ? g.lineTo(x, y) : g.moveTo(x, y); });
   g.strokeStyle = color; g.lineWidth = 1.2; g.stroke();
   const x = t / (series.length - 1) * w; g.fillStyle = C.gold; g.fillRect(x - 1, 0, 2, h);
+  const pk = series.indexOf(mx); if (mx > 0) { g.fillStyle = C.fg; g.beginPath(); g.arc(Math.max(2, Math.min(w - 2, pk / (series.length - 1) * w)), h - 2 - (h - 4), 1.8, 0, Math.PI * 2); g.fill(); }
 }
-const shareSeries = SECT.map(s => SECTOT[s.i].map((v, t) => v / TOT[t] * 100));
+let shareSeries;
+function rebuildShares() { shareSeries = SECT.map(s => SECTOT[s.i].map((v, t) => v / TOT[t] * 100)); }
+rebuildShares();
+// 峰值规律：用原来的30国算（不受候选国划分影响）。2002年以后的最大份额超过3%、且之后已满两年的国家，两年后还剩多少。
+const PEAK_RULE = (() => {
+  const r = [];
+  for (let k = 0; k < K0; k++) { const ser = DATA.sec[k].map((v, t) => v / TOT[t] * 100); let pk = 24; for (let t = 24; t < NM; t++) if (ser[t] > ser[pk]) pk = t;
+    if (ser[pk] >= 3 && pk + 24 <= LAST) r.push(ser[pk + 24] / ser[pk] * 100); }
+  return { n: r.length, avg: d3.mean(r), max: d3.max(r) };
+})();
+function toggleCand() {
+  candOn = !candOn; SECTOT = candOn ? SEC_CAND : SEC_BASE; rebuildShares();
+  fmCache.clear(); countCache.clear(); geom = null;
+  if (!candOn && selected && selected.type === 'sec' && SECT[selected.k].cand) selected = null;
+  draw(); drawTrack(); renderPanels();
+}
 function renderRealms(t) {
-  let html = `<p class="prose" style="margin:0 0 4px">每个行业是一国，面积按市值。小图是该国2000年以来占全图的份额，金色竖线是当前时间。</p>`;
+  let html = `<p class="prose" style="margin:0 0 4px">每个行业是一国，面积按市值。小图是该国2000年以来占全图的份额，金色竖线是当前时间，黑点是它版图最大的时候。</p>`;
+  const row = s => {
+    const sh = SECTOT[s.i][t] / TOT[t] * 100;
+    return `<button class="srow" data-sec="${s.i}"><span><span class="sw" style="background:${chip(s)}"></span>${s.n}${s.cand ? '<span class="pill cand">候选</span>' : THEMES[s.k] ? '<span class="pill">名单</span>' : ''}</span><canvas data-spark="${s.i}"></canvas><span class="p num">${SECTOT[s.i][t] > 0 ? fmtPct(sh) : '—'}</span></button>`;
+  };
   for (const f of FAM_ORDER) {
-    const list = SECT.filter(s => s.f === f).sort((a, b) => SECTOT[b.i][t] - SECTOT[a.i][t]);
-    html += `<div class="fam">${FAM[f]}</div>`;
-    for (const s of list) {
-      const sh = SECTOT[s.i][t] / TOT[t] * 100;
-      html += `<button class="srow" data-sec="${s.i}"><span><span class="sw" style="background:${chip(s)}"></span>${s.n}${THEMES[s.k] ? '<span class="pill">名单</span>' : ''}</span><canvas data-spark="${s.i}"></canvas><span class="p num">${SECTOT[s.i][t] > 0 ? fmtPct(sh) : '—'}</span></button>`;
-    }
+    const list = SECT.filter(s => s.f === f && !s.cand).sort((a, b) => SECTOT[b.i][t] - SECTOT[a.i][t]);
+    html += `<div class="fam">${FAM[f]}</div>` + list.map(row).join('');
   }
+  html += `<div class="fam">候选国<button class="linkbtn" id="tgCand">${candOn ? '从地图上隐去' : '画到地图上'}</button></div>
+    <p class="prose sm" style="margin:2px 4px 6px">还在形成中的行业，2023年1月起用虚线国界画在地图上，公司从原来的国里划出。名单是人工挑的。</p>` + SECT.filter(s => s.cand).map(row).join('');
   pages.realms.innerHTML = html;
+  document.getElementById('tgCand').onclick = toggleCand;
   pages.realms.querySelectorAll('canvas[data-spark]').forEach(cv => { const s = SECT[+cv.dataset.spark]; sparkline(cv, shareSeries[s.i], t, chip(s)); });
   pages.realms.querySelectorAll('[data-sec]').forEach(b => b.onclick = () => select({ type: 'sec', k: +b.dataset.sec }));
 }
@@ -771,13 +906,18 @@ function renderDetail(t) {
     const note = s.k === 'ai' ? '本项目自定义的板块：光模块、AI服务器、AI芯片、算力PCB与数据中心等20家公司，2023年1月起从电子、通信、计算机、半导体中划出。'
       : s.k === 'baijiu' ? '本项目按名单划出的19家白酒公司，其余酒饮料公司在“食品饮料”。'
       : s.k === 'appl' ? '本项目按名单划出的26家家电公司；证监会把它们分在电气机械或电子设备制造。'
-      : s.k === 'semi' ? '本项目按名单划出的64家芯片设计、制造、封测、设备与材料公司；其余电子公司仍在“电子”。' : '';
+      : s.k === 'semi' ? '本项目按名单划出的64家芯片设计、制造、封测、设备与材料公司；其余电子公司仍在“电子”。'
+      : s.cand ? `候选国，2023年1月起从“${s.parent}”划出，名单共 ${s.count} 家。${s.note}要成为正式的国，还要看它能不能${s.cond}。` : '';
+    const after = pk + 24 <= LAST ? ser[pk + 24] / ser[pk] * 100 : null;
     P.innerHTML = `<div class="range">${FAM[s.f]}</div><h2 class="sec"><span class="sw" style="background:${chip(s)};width:14px;height:14px"></span>${s.n}</h2>
       ${note ? `<p class="prose">${note}</p>` : ''}
       <dl class="facts num"><dt>${ym(t)}</dt><dd>${SECTOT[s.i][t] > 0 ? `${fmtYi(SECTOT[s.i][t])} · 占全图 ${fmtPct(ser[t])}` : '此时尚无'}</dd>
       <dt>公司数</dt><dd>${members.length} 家</dd>
-      <dt>版图最大</dt><dd>${ym(pk)}，占 ${fmtPct(ser[pk])}</dd></dl>
+      <dt>版图最大</dt><dd>${ym(pk)}，占 ${fmtPct(ser[pk])}</dd>
+      ${t !== pk && ser[t] > 0 ? `<dt>此时相当于</dt><dd>最大时的 ${Math.round(ser[t] / ser[pk] * 100)}%</dd>` : ''}
+      ${after !== null ? `<dt>最大两年后</dt><dd>${ym(pk + 24)}占 ${fmtPct(ser[pk + 24])}，剩 ${Math.round(after)}%</dd>` : ''}</dl>
       <canvas class="chart" id="dchart"></canvas>
+      ${s.cand ? '' : `<p class="prose sm dim">版图最大的时候，往往也是这个行业最受追捧的时候。本图原有的30国里，有 ${PEAK_RULE.n} 国的最大版图超过全图3%且已过去两年以上：两年后平均只剩 ${Math.round(PEAK_RULE.avg)}%，保住最多的也只剩 ${Math.round(PEAK_RULE.max)}%。 <a class="linkbtn" href="guanchao.html#fengzhi">看30国的峰值</a></p>`}
       <div class="card"><div class="label">${ym(t)} · 该国前十</div><div class="rows">${members.slice(0, 10).map(([o], i) => coRow(o, t, i + 1)).join('') || '<p class="empty">此时没有公司</p>'}</div></div>`;
     bigChart(document.getElementById('dchart'), ser, t, chip(s), { fmt: v => v + '%', area: true });
     bindRows(P); return;
@@ -787,7 +927,8 @@ function renderDetail(t) {
   const series = MONTHS.map((_, i) => capAt(o, i));
   const pk = series.indexOf(Math.max(...series));
   const names = [...o.ren.map(r => r[1]), o.name].filter((v, i, a) => a.indexOf(v) === i);
-  const trail = o.sc.map(([m, k], i) => `<span><span class="sw" style="background:${chip(SECT[k])}"></span>${SECT[k].n} · ${i ? ymShort(m) + '起' : ymShort(Math.max(m, o.a)) + '起'}</span>`).join('');
+  const trail = o.sc.map(([m, k], i) => `<span><span class="sw" style="background:${chip(SECT[k])}"></span>${SECT[k].n} · ${i ? ymShort(m) + '起' : ymShort(Math.max(m, o.a)) + '起'}</span>`).join('')
+    + (candOn && o.cand >= 0 && o.b >= T0 ? `<span><span class="sw" style="background:${chip(SECT[o.cand])}"></span>${SECT[o.cand].n}（候选国） · ${ymShort(Math.max(T0, o.a))}起</span>` : '');
   const alive = t >= o.a && t <= o.b;
   const r = alive ? ranking(t).pos.get(o.j) : null;
   const estTxt = o.est.length ? `<p class="prose" style="font-size:13px"><span class="pill warn" style="margin:0 6px 0 0">估算</span>${o.est.map(([x, y]) => `${ymShort(x)}–${ymShort(y)}`).join('、')} 缺少总股本数据，市值按流通股本或成交额估算，图上用斜线标出。</p>` : '';
@@ -797,6 +938,7 @@ function renderDetail(t) {
     <dl class="facts num">
       <dt>${ym(t)}</dt><dd>${alive ? `${fmtYi(capAt(o, t))} · 全图第 ${r} 位 · 占 ${fmtPct(capAt(o, t) / TOT[t] * 100)}` : t < o.a ? `尚未上市（${ym(o.a)}起有数据）` : `已退市（最后在图上：${ym(o.b)}）`}</dd>
       <dt>市值最高</dt><dd>${ym(pk)}，${fmtYi(series[pk])}</dd>
+      ${alive && t < LAST && o.b === LAST ? `<dt>此时至今</dt><dd>市值变为 ${(capAt(o, LAST) / capAt(o, t)).toFixed(2)} 倍，同期全图 ${(TOT[LAST] / TOT[t]).toFixed(2)} 倍</dd>` : ''}
       <dt>在图上</dt><dd>${ym(o.a)} – ${o.b < LAST ? ym(o.b) : '至今'}</dd>
     </dl>
     <canvas class="chart" id="dchart"></canvas>
@@ -871,6 +1013,14 @@ pages.notes.innerHTML = `
 <li>基础是证监会行业分类（2012年版，约80个大类），合并成30个国。2013年以前统一用公司最早的2012版分类；2013年起按当月分类，公司转行时会从一国划到另一国。</li>
 <li>白酒（19家）、家电（26家）、半导体（64家）、AI算力（20家，2023年1月起）是本项目按公司名单划出的，名单在“诸国”里带“名单”标记。另有十来家公司按主业做了调整，例如东方财富2016年起归证券，中国中车归机械。</li>
 <li>借壳上市的券商（海通、长江、国元、广发等），借壳以前按壳公司的名称和行业显示。</li>
+<li>候选国：${EX.cand.map(c => `${c.n}（${c.codes.length}家）`).join('、')}。它们是还在形成中的行业，2023年1月起用虚线国界画出，名单里的公司从原来的国里划出；名单是按主营业务人工挑选的，边界有主观成分。在“诸国”里可以把候选国从地图上隐去，回到原来的30国。行业份额的历史峰值等统计，一律按原来的30国计算。</li>
+</ul>
+<h3>海平面是什么</h3>
+<ul>
+<li>海平面 = 本图合计市值 ÷ 近一年名义GDP，也就是常说的“股市总市值与GDP之比”。水位高，说明股市相对经济的规模大。年度GDP在月份之间做线性插值。</li>
+<li>GDP用国家统计局数据：${EX.gdpNote}因为本图合计比交易所口径高一成左右，这里的海平面也相应偏高。</li>
+<li>“常见区间60%–80%”是经验区间：2010年以来约六成的月份落在其中。它不是买卖信号。</li>
+<li>“老公司的市值”（地价指数）：每个月只比较前后两个月都在图上的公司，新上市带来的面积不计入。它包含增发带来的市值增加，不包含分红，所以不等于持有股票的回报。</li>
 </ul>
 <h3>没有画进来的</h3>
 <ul>
@@ -883,7 +1033,7 @@ pages.notes.innerHTML = `
 <li>“退市”包括被吸收合并（如中国北车、海通证券），${CO.filter(o => o.b < LAST).length} 家。</li>
 <li>本图适合看行业版图的大势，不宜当作个股数据来源，也不构成投资建议。时代解说由 AI（Claude）编写，可能有错漏。</li>
 </ul>
-<p class="foot">最后一帧：2026年10月30日收盘。<br><a href="video.html">观看使用讲解视频（4分38秒）</a> · <a href="https://github.com/wanglu2016/agu-jiangyu" target="_blank" rel="noopener">源代码与离线版</a></p>`;
+<p class="foot">最后一帧：2026年10月30日收盘。<br><a href="guanchao.html">观潮：从这张图里读出的六条规律</a> · <a href="video.html">观看使用讲解视频（4分38秒）</a> · <a href="https://github.com/wanglu2016/agu-jiangyu" target="_blank" rel="noopener">源代码与离线版</a></p>`;
 
 // ---------------------------------------------------------------- 启动
 refreshColors();
