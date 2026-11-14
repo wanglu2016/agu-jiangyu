@@ -1,0 +1,497 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>发现好公司 · A股疆域图</title>
+<meta name="description" content="注意力和资本一样，只能不平均地分配。从学科往产业、公司、价格筛四遍：知识往哪里流，哪片土壤养人，哪座城根基扎实，今天的地价贵不贵。用2010–2025年的年报和复权回报实时计算。">
+<meta property="og:title" content="发现好公司 · 从学科和产业的版图里找好公司">
+<meta property="og:description" content="五千多家公司里，十年平均净资产收益率超过15%的不到一成。它们出自哪些行业，现在贵不贵？">
+<meta property="og:image" content="assets/preview-faxian.jpg">
+<meta name="theme-color" content="#dde6e2">
+<link rel="icon" href="assets/icon.svg" type="image/svg+xml">
+<style>html,body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
+<link rel="stylesheet" href="assets/fonts/fonts.css">
+<style>
+/* 发现好公司：一册“择城记”。页首是一座从海里筛出来的台地，下面六章左文右图，颜色与地图、观潮同出一套矿物颜料。 */
+:root {
+  --sea: #dde6e2; --water: #b9cfcd; --water-2: #a5c1c0; --water-line: rgba(38, 84, 86, 0.30);
+  --panel: #f6f4ee; --panel-2: #ece9e0; --line: rgba(40, 52, 48, 0.13); --line-2: rgba(40, 52, 48, 0.28);
+  --fg: #1c2522; --fg-2: #4b5853; --fg-3: #737f79;
+  --gold: #8f6418; --cinnabar: #b8432b; --malachite: #2f7a63;
+  --c1: #1f8466; --c2: #b8432b; --c3: #2f63a8; --c4: #a8791f; --mute: #a3aca6;
+  --o1: #7eb1a0; --o2: #699b8b; --o3: #548676; --o4: #3f7162; --o5: #2b5d4f; --o6: #164a3c; --o7: #00372a;
+  --band: rgba(143, 100, 24, 0.14);
+  --pos: 47, 122, 99; --neg: 184, 67, 43;
+  --tip: rgba(28, 37, 34, 0.95); --tip-fg: #f3efe4;
+  --serif: "Noto Serif SC", "Source Han Serif SC", "Songti SC", "STSong", serif;
+  --sans: "Noto Sans SC", "Source Han Sans SC", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --sea: #0d1a20; --water: #17333b; --water-2: #1d3f48; --water-line: rgba(150, 205, 200, 0.22);
+    --panel: #111e24; --panel-2: #172830; --line: rgba(210, 225, 215, 0.11); --line-2: rgba(210, 225, 215, 0.26);
+    --fg: #ebe6d6; --fg-2: #b6bdb4; --fg-3: #8a9690;
+    --gold: #d8b66c; --cinnabar: #e2694c; --malachite: #79b9a0;
+    --c1: #3fa682; --c2: #dd6245; --c3: #5c90d8; --c4: #b18a2c; --mute: #5d6c68;
+    --o1: #19604e; --o2: #317461; --o3: #478975; --o4: #5c9e8a; --o5: #72b49f; --o6: #88cbb5; --o7: #9ee2cb;
+    --band: rgba(216, 182, 108, 0.14);
+    --pos: 121, 185, 160; --neg: 226, 105, 76;
+    --tip: rgba(236, 231, 216, 0.97); --tip-fg: #14211f; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --sea: #0d1a20; --water: #17333b; --water-2: #1d3f48; --water-line: rgba(150, 205, 200, 0.22);
+  --panel: #111e24; --panel-2: #172830; --line: rgba(210, 225, 215, 0.11); --line-2: rgba(210, 225, 215, 0.26);
+  --fg: #ebe6d6; --fg-2: #b6bdb4; --fg-3: #8a9690;
+  --gold: #d8b66c; --cinnabar: #e2694c; --malachite: #79b9a0;
+  --c1: #3fa682; --c2: #dd6245; --c3: #5c90d8; --c4: #b18a2c; --mute: #5d6c68;
+  --o1: #19604e; --o2: #317461; --o3: #478975; --o4: #5c9e8a; --o5: #72b49f; --o6: #88cbb5; --o7: #9ee2cb;
+  --band: rgba(216, 182, 108, 0.14);
+  --pos: 121, 185, 160; --neg: 226, 105, 76;
+  --tip: rgba(236, 231, 216, 0.97); --tip-fg: #14211f; color-scheme: dark;
+}
+html { scroll-behavior: smooth; scroll-padding-top: 64px; }
+body { background: var(--panel); color: var(--fg); font-family: var(--sans); font-size: 15px; line-height: 1.85; -webkit-font-smoothing: antialiased; }
+a { color: var(--malachite); text-underline-offset: 3px; }
+button, input, select { font: inherit; color: inherit; }
+button { cursor: pointer; }
+:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+.num { font-variant-numeric: tabular-nums; }
+
+/* 顶栏 */
+#bar { position: sticky; top: 0; z-index: 20; display: flex; align-items: center; gap: 14px; height: 52px; padding: 0 max(18px, env(safe-area-inset-right, 0px)) 0 max(18px, env(safe-area-inset-left, 0px)); background: var(--panel); border-bottom: 1px solid var(--line); }
+#bar .home { font-family: var(--serif); font-weight: 600; letter-spacing: .18em; font-size: 14px; color: var(--fg-2); text-decoration: none; white-space: nowrap; }
+#bar .home b { color: var(--fg); font-weight: 900; margin-left: .6em; letter-spacing: .1em; }
+#bar nav { display: flex; gap: 2px; margin-left: auto; overflow-x: auto; scrollbar-width: none; }
+#bar nav::-webkit-scrollbar { display: none; }
+#bar nav a { padding: 6px 10px; font-size: 14px; color: var(--fg-2); text-decoration: none; white-space: nowrap; border-bottom: 2px solid transparent; }
+#bar nav a:hover { color: var(--fg); }
+#bar nav a.on { color: var(--fg); border-bottom-color: var(--gold); font-weight: 700; }
+#bar .go { flex: none; padding: 6px 14px; border-radius: 999px; border: 1px solid var(--malachite); color: var(--malachite); text-decoration: none; font-size: 13.5px; white-space: nowrap; }
+#bar .go:hover { background: var(--malachite); color: var(--panel); }
+#bar .go.alt { border-color: transparent; padding: 6px 4px; font-weight: 700; }
+#bar .go.alt:hover { background: transparent; color: var(--malachite); text-decoration: underline; }
+
+/* 页首：筛出来的台地 */
+#hero { background: var(--sea); border-bottom: 1px solid var(--line-2); }
+#hero .in { max-width: 1180px; margin: 0 auto; display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 6fr); gap: 24px 64px; align-items: end; padding: clamp(32px, 7vh, 72px) max(22px, env(safe-area-inset-right, 0px)) clamp(30px, 6vh, 56px) max(22px, env(safe-area-inset-left, 0px)); }
+#hero h1 { margin: 0; font-family: var(--serif); font-weight: 900; font-size: clamp(44px, 6.6vw, 84px); line-height: 1.08; letter-spacing: .08em; }
+#hero .lede { margin: 20px 0 0; max-width: 30em; font-size: clamp(15px, 1.5vw, 17px); line-height: 1.9; color: var(--fg-2); }
+#hero .lede b { color: var(--fg); }
+#hero .how { margin: 16px 0 0; font-size: 13px; line-height: 1.75; color: var(--fg-3); max-width: 36em; }
+.sieve { margin: 0; padding: 0; list-style: none; }
+.sieve li { display: grid; grid-template-columns: 6.6em minmax(0, 1fr); gap: 0 14px; align-items: center; padding: 9px 0; border-top: 1px solid var(--water-line); }
+.sieve li:first-child { border-top: 0; }
+.sieve .n { font-family: var(--serif); font-weight: 900; font-size: clamp(24px, 2.8vw, 34px); line-height: 1.1; text-align: right; white-space: nowrap; }
+.sieve .n small { font-family: var(--sans); font-weight: 400; font-size: 12px; color: var(--fg-3); margin-left: 2px; }
+.sieve .bar { height: 10px; border-radius: 0 4px 4px 0; min-width: 4px; }
+.sieve .k { font-size: 13.5px; line-height: 1.55; color: var(--fg-2); margin-top: 5px; }
+.sieve .k b { color: var(--fg); font-weight: 700; }
+.sieve a { color: inherit; text-decoration: none; display: contents; }
+#sieveNote { margin: 10px 0 0; font-size: 12.5px; color: var(--fg-3); }
+
+/* 章节 */
+main { max-width: 1180px; margin: 0 auto; padding: 0 max(22px, env(safe-area-inset-right, 0px)) 0 max(22px, env(safe-area-inset-left, 0px)); }
+.ch { display: grid; grid-template-columns: 300px minmax(0, 1fr); gap: 0 56px; padding: 72px 0 64px; border-bottom: 1px solid var(--line-2); }
+.ch > .txt { position: sticky; top: 76px; align-self: start; }
+.ch .step { font-size: 12.5px; letter-spacing: .16em; color: var(--gold); font-weight: 700; margin-bottom: 6px; }
+.ch h2 { margin: 0; font-family: var(--serif); font-weight: 900; font-size: 56px; line-height: 1.05; letter-spacing: .12em; }
+.ch .claim { margin: 14px 0 0; font-family: var(--serif); font-weight: 600; font-size: 21px; line-height: 1.55; text-wrap: balance; }
+.ch .txt p { margin: 14px 0 0; color: var(--fg-2); }
+.ch .txt p b { color: var(--fg); font-weight: 700; }
+.ch .txt .note { font-size: 13px; line-height: 1.75; color: var(--fg-3); }
+.fig { margin: 0 0 48px; }
+.fig:last-child { margin-bottom: 0; }
+.fig h3 { margin: 0; font-family: var(--serif); font-weight: 600; font-size: 17px; line-height: 1.5; }
+.fig .sub { margin: 2px 0 10px; font-size: 13px; color: var(--fg-3); line-height: 1.6; max-width: 52em; }
+.plot { position: relative; }
+.plot svg { display: block; touch-action: pan-y; overflow: visible; }
+.axis text, .tick { font-size: 11.5px; fill: var(--fg-3); font-family: var(--sans); }
+.grid { stroke: var(--line); stroke-width: 1; shape-rendering: crispEdges; }
+.zero { stroke: var(--line-2); stroke-width: 1; shape-rendering: crispEdges; }
+.lab { font-size: 12.5px; fill: var(--fg); font-family: var(--sans); }
+.lab.dim { fill: var(--fg-2); font-size: 12px; }
+.lab.b { font-weight: 700; }
+.hp { paint-order: stroke; stroke: var(--panel); stroke-width: 4px; stroke-linejoin: round; }
+.quad { font-size: 12px; fill: var(--fg-3); font-family: var(--serif); font-weight: 600; letter-spacing: .1em; }
+
+/* 控件、图例、数字 */
+.ctl { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin: 0 0 12px; font-size: 13.5px; color: var(--fg-2); }
+.seg { display: inline-flex; border: 1px solid var(--line-2); border-radius: 8px; overflow: hidden; }
+.seg button { border: 0; background: transparent; padding: 5px 12px; font-size: 13.5px; color: var(--fg-2); }
+.seg button + button { border-left: 1px solid var(--line); }
+.seg button[aria-pressed="true"] { background: var(--fg); color: var(--panel); }
+.chip { border: 1px solid var(--line-2); background: transparent; border-radius: 999px; padding: 3px 11px; font-size: 13px; color: var(--fg-2); }
+.chip[aria-pressed="true"] { background: var(--fg); color: var(--panel); border-color: var(--fg); }
+input[type=range] { accent-color: var(--malachite); width: 150px; height: 28px; }
+select, input[type=search] { border: 1px solid var(--line-2); background: var(--panel); border-radius: 8px; padding: 5px 10px; font-size: 13.5px; }
+.legend { display: flex; flex-wrap: wrap; gap: 4px 16px; margin: 0 0 8px; font-size: 12.5px; color: var(--fg-2); }
+.legend i { display: inline-block; width: 14px; height: 3px; border-radius: 2px; margin-right: 6px; vertical-align: 3px; }
+.legend i.box { width: 11px; height: 11px; border-radius: 2px; vertical-align: -1px; }
+.legend i.dot { width: 9px; height: 9px; border-radius: 50%; vertical-align: 0; }
+.legend i.ring { width: 8px; height: 8px; border-radius: 50%; vertical-align: 0; background: transparent; border: 1.5px solid var(--fg-2); }
+.tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 0; margin: 0 0 18px; border-top: 1px solid var(--line-2); border-bottom: 1px solid var(--line); }
+.tile { padding: 12px 14px 12px 0; }
+.tile + .tile { padding-left: 14px; border-left: 1px solid var(--line); }
+.tile .v { font-size: 27px; font-weight: 700; line-height: 1.2; letter-spacing: -0.01em; }
+.tile .k { font-size: 12.5px; color: var(--fg-3); line-height: 1.5; margin-top: 2px; }
+table.dt { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+table.dt th { text-align: right; font-weight: 500; color: var(--fg-3); font-size: 12.5px; padding: 6px 8px; border-bottom: 1px solid var(--line-2); white-space: nowrap; }
+table.dt td { text-align: right; padding: 6px 8px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+table.dt th:first-child, table.dt td:first-child { text-align: left; padding-left: 0; }
+table.dt th.l, table.dt td.l { text-align: left; }
+table.dt td i.sw { display: inline-block; width: 9px; height: 9px; border-radius: 3px; margin-right: 6px; }
+table.dt th button { border: 0; background: transparent; padding: 0; font-size: inherit; color: inherit; font-weight: inherit; }
+table.dt th button:hover { color: var(--fg); }
+table.dt th[aria-sort] button { color: var(--fg); font-weight: 700; }
+table.dt th[aria-sort="descending"] button::after { content: " ↓"; }
+table.dt th[aria-sort="ascending"] button::after { content: " ↑"; }
+table.dt tbody tr.pick { cursor: pointer; }
+table.dt tbody tr.pick:hover td { background: var(--panel-2); }
+table.dt tbody tr.sel td { background: var(--band); }
+details.more { margin-top: 10px; font-size: 13px; }
+details.more summary { cursor: pointer; color: var(--malachite); width: fit-content; }
+details.more .scroll { max-height: 420px; overflow: auto; margin-top: 8px; border-top: 1px solid var(--line); }
+.scrollx { overflow-x: auto; }
+.say { margin: 12px 0 0; font-size: 14px; color: var(--fg-2); max-width: 46em; }
+.say b { color: var(--fg); }
+.pill { display: inline-block; font-size: 11.5px; font-weight: 400; padding: 1px 8px; border-radius: 999px; border: 1px solid var(--line-2); color: var(--fg-2); white-space: nowrap; }
+.pill.warn { border-color: var(--cinnabar); color: var(--cinnabar); }
+.pill.dash { border-style: dashed; }
+
+/* 前沿卡片 */
+.fronts { display: grid; grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); gap: 30px 34px; }
+.front { min-width: 0; border-top: 2px solid var(--fg); padding-top: 10px; }
+.front h4 { margin: 0; font-family: var(--serif); font-weight: 900; font-size: 20px; letter-spacing: .06em; display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+.front .disc { font-size: 12.5px; color: var(--fg-3); margin-top: 1px; }
+.front .kv { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0 10px; margin: 8px 0 2px; }
+.front .kv div { font-size: 11.5px; color: var(--fg-3); line-height: 1.4; }
+.front .kv b { display: block; font-size: 16px; color: var(--fg); font-weight: 700; line-height: 1.35; }
+.front p { margin: 8px 0 0; font-size: 13.5px; line-height: 1.75; color: var(--fg-2); }
+.front p.sig { font-size: 13px; color: var(--fg-3); }
+.front p.sig b { color: var(--fg-2); font-weight: 700; }
+.front .att { font-size: 12px; color: var(--fg-3); font-family: var(--sans); font-weight: 400; letter-spacing: 0; margin-left: auto; white-space: nowrap; }
+.front .att i { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-left: 3px; border: 1.5px solid var(--gold); }
+.front .att i.f { background: var(--gold); }
+.front ul.ms { margin: 6px 0 0; padding: 0; list-style: none; font-size: 12px; color: var(--fg-3); line-height: 1.6; }
+.front ul.ms li { display: inline; }
+.front ul.ms li + li::before { content: " · "; }
+.front ul.ms b { color: var(--fg-2); font-weight: 500; }
+.front.far { border-top-style: dashed; border-top-width: 1px; }
+
+/* 回测表 */
+table.heat { width: 100%; border-collapse: separate; border-spacing: 3px; font-size: 13.5px; table-layout: fixed; }
+table.heat th { font-weight: 500; color: var(--fg-3); font-size: 12.5px; padding: 4px 6px; text-align: center; line-height: 1.4; }
+table.heat th.r { text-align: left; color: var(--fg); font-weight: 700; font-size: 13.5px; width: 7.2em; }
+table.heat td { text-align: center; padding: 9px 4px 8px; border-radius: 6px; line-height: 1.35; }
+table.heat td b { display: block; font-size: 17px; font-weight: 700; color: var(--fg); }
+table.heat td span { font-size: 11.5px; color: var(--fg-2); }
+table.heat td.all { background: transparent; border: 1px solid var(--line); }
+table.heat td.na { color: var(--fg-3); background: transparent; border: 1px dashed var(--line); }
+.heatkey { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--fg-3); margin: 8px 0 0; }
+.heatkey i { display: inline-block; width: 120px; height: 8px; border-radius: 4px; background: linear-gradient(90deg, rgba(var(--neg), .55), rgba(var(--neg), .12) 42%, transparent 50%, rgba(var(--pos), .12) 58%, rgba(var(--pos), .55)); border: 1px solid var(--line); }
+
+/* 寻城 */
+.filters { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 10px 26px; margin: 0 0 12px; }
+.filters label { display: flex; align-items: center; gap: 10px; font-size: 13.5px; color: var(--fg-2); }
+.filters label span.k { flex: none; min-width: 7.6em; }
+.filters label b { min-width: 3em; text-align: right; color: var(--fg); }
+.filters input[type=range] { flex: 1; min-width: 80px; width: auto; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px 8px; margin: 0 0 14px; }
+#resSum { margin: 0 0 10px; font-size: 14px; color: var(--fg-2); }
+#resSum b { color: var(--fg); }
+td .mini { display: inline-block; vertical-align: middle; }
+.co-n { font-weight: 700; }
+.co-c { font-size: 11.5px; color: var(--fg-3); margin-left: 6px; }
+#detail { margin-top: 26px; border-top: 2px solid var(--fg); padding-top: 14px; }
+#detail h3 { font-family: var(--serif); font-weight: 900; font-size: 26px; letter-spacing: .06em; margin: 0; display: flex; align-items: baseline; flex-wrap: wrap; gap: 6px 12px; }
+#detail h3 small { font-family: var(--sans); font-weight: 400; font-size: 13px; color: var(--fg-3); letter-spacing: 0; }
+#detail .lead { margin: 6px 0 12px; font-size: 14px; color: var(--fg-2); max-width: 50em; }
+#detail .lead b { color: var(--fg); }
+.trio { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 18px 26px; margin: 4px 0 6px; }
+.trio h5 { margin: 0 0 2px; font-size: 13px; font-weight: 700; }
+.trio .sub { margin: 0 0 4px; font-size: 12px; color: var(--fg-3); }
+ul.check { margin: 10px 0 0; padding: 0; list-style: none; font-size: 13.5px; line-height: 1.7; color: var(--fg-2); }
+ul.check li { padding: 4px 0 4px 1.5em; position: relative; border-bottom: 1px solid var(--line); }
+ul.check li::before { content: ""; position: absolute; left: 3px; top: .82em; width: 7px; height: 7px; border-radius: 50%; background: var(--mute); }
+ul.check li.w::before { background: var(--cinnabar); border-radius: 1px; transform: rotate(45deg); }
+ul.check li.g::before { background: var(--malachite); }
+ul.check li b { color: var(--fg); }
+#suggest { position: absolute; z-index: 30; left: 0; top: calc(100% + 4px); min-width: 280px; background: var(--panel); border: 1px solid var(--line-2); border-radius: 10px; box-shadow: 0 10px 30px rgba(0,0,0,.18); overflow: hidden; }
+#suggest button { display: block; width: 100%; text-align: left; border: 0; background: transparent; padding: 7px 12px; font-size: 13.5px; }
+#suggest button:hover, #suggest button.on { background: var(--panel-2); }
+#suggest button span { color: var(--fg-3); font-size: 12px; margin-left: 8px; }
+
+/* 分配 */
+.tiers { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 24px 30px; }
+.tier { border-top: 2px solid var(--fg); padding-top: 10px; min-width: 0; }
+.tier h4 { margin: 0; font-family: var(--serif); font-weight: 900; font-size: 22px; letter-spacing: .1em; }
+.tier .w { font-size: 12.5px; color: var(--fg-3); }
+.tier p { margin: 8px 0 0; font-size: 13.5px; line-height: 1.75; color: var(--fg-2); }
+.tier p b { color: var(--fg); }
+.gates { margin: 0; padding: 0; list-style: none; }
+.gates li { display: grid; grid-template-columns: 4.6em minmax(0, 1fr); gap: 4px 14px; padding: 10px 0; border-bottom: 1px solid var(--line); font-size: 14px; color: var(--fg-2); }
+.gates li b.h { font-family: var(--serif); font-weight: 900; font-size: 17px; color: var(--fg); letter-spacing: .1em; }
+.gates li b { color: var(--fg); }
+
+#tt { position: fixed; z-index: 40; pointer-events: none; background: var(--tip); color: var(--tip-fg); padding: 8px 11px; border-radius: 8px; font-size: 12.5px; line-height: 1.55; max-width: 300px; box-shadow: 0 6px 22px rgba(0,0,0,.22); }
+#tt .t { font-weight: 700; font-size: 13.5px; }
+#tt .r { display: flex; justify-content: space-between; gap: 14px; }
+#tt .r b { font-weight: 700; }
+#tt .r i { display: inline-block; width: 12px; height: 3px; border-radius: 2px; margin-right: 6px; vertical-align: 3px; }
+#tt .s { opacity: .78; }
+
+footer { max-width: 1180px; margin: 0 auto; padding: 40px max(22px, env(safe-area-inset-right, 0px)) 64px max(22px, env(safe-area-inset-left, 0px)); font-size: 13px; line-height: 1.8; color: var(--fg-3); }
+footer h2 { font-family: var(--serif); font-size: 17px; color: var(--fg); margin: 0 0 8px; }
+footer ul { margin: 0; padding-left: 1.2em; max-width: 64em; }
+footer p { margin: 14px 0 0; }
+
+@media (max-width: 900px) {
+  #hero .in { grid-template-columns: 1fr; align-items: start; }
+  .ch { display: block; padding: 48px 0 44px; }
+  .ch > .txt { position: static; margin-bottom: 28px; }
+  .ch h2 { font-size: 44px; }
+  .ch .claim { font-size: 19px; }
+  #bar { gap: 8px; }
+  #bar .home span { display: none; }
+  #bar .home b { margin-left: 0; }
+  #bar .go.alt { display: none; }
+  .tile .v { font-size: 23px; }
+  .hide-s { display: none; }
+  table.heat { font-size: 12.5px; border-spacing: 2px; }
+  table.heat td b { font-size: 15px; }
+  table.heat th.r { width: 5.4em; font-size: 12.5px; }
+}
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+</style>
+</head>
+<body>
+<header id="bar">
+  <a class="home" href="index.html"><span>A股疆域图</span><b>发现好公司</b></a>
+  <nav aria-label="章节">
+    <a href="#yuantou">源头</a><a href="#wotu">沃土</a><a href="#chengji">城基</a><a href="#dijia">地价</a><a href="#xuncheng">寻城</a><a href="#fenpei">分配</a>
+  </nav>
+  <a class="go alt" href="guanchao.html">观潮</a>
+  <a class="go" href="index.html">打开地图</a>
+</header>
+
+<section id="hero" aria-label="从全部公司里一层层筛出来的数目">
+  <div class="in">
+    <div>
+      <h1>发现<br>好公司</h1>
+      <p class="lede">一个要选专业的学生，一笔要找去处的钱，一个什么都读过的AI，面对的是同一件事：<b>注意力只能不平均地分</b>。这张图上有 <b id="hN"></b> 座城，没有人看得过来。这一页从上往下筛四遍：知识往哪里流，哪片土壤养人，哪座城根基扎实，今天的地价贵不贵。</p>
+      <p class="how">地图让人看见版图，<a href="guanchao.html">观潮</a>讲的是不要做什么，这一页讲的是把注意力放在哪里。数字都由页面根据2010–2025年的年报和复权价实时计算，文字里的判断由 AI 写成，不构成投资建议。</p>
+    </div>
+    <div>
+      <ol class="sieve num" id="sieve"></ol>
+      <p id="sieveNote"></p>
+    </div>
+  </div>
+</section>
+
+<main>
+  <section class="ch" id="yuantou">
+    <div class="txt">
+      <div class="step">第一遍 · 学科</div>
+      <h2>源头</h2>
+      <p class="claim">版图往哪里长，先看知识往哪里流。</p>
+      <p id="t1"></p>
+      <p class="note">研发强度用的是2025年报里“研发费用 ÷ 营业收入”，只取到了约一半公司的数字，每国把这些公司合起来算；银行、证券、保险没有这一项，单列为金融。国家统计局的口径不同，但排序一致：2025年规模以上工业里，医药制造业的研发强度是5.13%，计算机通信电子是3.03%，酒和饮料是0.64%，电力是0.30%。</p>
+    </div>
+    <div class="viz">
+      <div class="fig">
+        <h3>研发多的国家和研发少的国家，各占全图多少</h3>
+        <p class="sub">把30国按今天的研发强度分成三档，加上金融，看它们的市值合计占全图的份额，2000年至今。</p>
+        <div class="legend" id="lgBand"></div>
+        <div class="plot" id="pBand"></div>
+        <details class="more"><summary>各国的研发强度和归档</summary><div class="scroll"><table class="dt num" id="tBand"></table></div></details>
+      </div>
+      <div class="fig">
+        <h3>七条前沿，一片远方</h3>
+        <p class="sub">每条前沿背后是一两门学科的突破。小图是这组公司2015年至今占全图的份额，三角是学科和政策的节点；四个数字来自年报。“AI的注意力”是写这一页的 AI 自己的判断，说的是值得花多少时间研究，不是买卖建议。</p>
+        <div class="fronts" id="fronts"></div>
+      </div>
+      <div class="fig">
+        <h3>预期和利润，谁跑在前面</h3>
+        <p class="sub">横轴：这组公司2025年的利润是2022年的几倍。纵轴：同一时期它占全图的份额变成了几倍。斜线以上，版图跑在利润前面；斜线以下，利润已经到了，版图还没跟上。</p>
+        <div class="plot" id="pLead"></div>
+        <p class="say" id="sLead"></p>
+      </div>
+      <div class="fig">
+        <h3>大学的选择：两个专业的扩张</h3>
+        <p class="sub">每年新获批开设这个本科专业的高校数。获批后第二年招生，再过四年才有第一批毕业生。</p>
+        <div class="legend"><span><i class="box" style="background:var(--c3)"></i>数据科学与大数据技术</span><span><i class="box" style="background:var(--c1)"></i>人工智能</span></div>
+        <div class="plot" id="pMajor"></div>
+        <p class="say" id="sMajor"></p>
+      </div>
+    </div>
+  </section>
+
+  <section class="ch" id="wotu">
+    <div class="txt">
+      <div class="step">第二遍 · 产业</div>
+      <h2>沃土</h2>
+      <p class="claim">研发最多的土壤，不一定最肥。</p>
+      <p id="t2"></p>
+      <p class="note">净资产收益率（ROE）= 归母净利润 ÷ 归母净资产，这里是一国所有公司2016–2025年的合计数相除。它衡量的是股东每投入一块钱，一年能赚回几分。银行和保险靠杠杆经营，ROE不能和制造业直接比。</p>
+    </div>
+    <div class="viz">
+      <div class="fig">
+        <h3>三十国的土壤：回报率和利润增长</h3>
+        <p class="sub">横轴：2016–2025年合计的净资产收益率。纵轴：同一批公司的利润合计，2015到2025年的年化增长。圆的大小是今天的版图。</p>
+        <div class="plot" id="pSoil"></div>
+        <p class="say" id="sSoil"></p>
+      </div>
+      <div class="fig">
+        <h3>十年里一直赚钱的公司，出自哪里</h3>
+        <p class="sub" id="hitSub"></p>
+        <div class="plot" id="pHit"></div>
+        <details class="more"><summary>三十国的土壤数据表</summary><div class="scroll scrollx"><table class="dt num" id="tSoil"></table></div></details>
+      </div>
+    </div>
+  </section>
+
+  <section class="ch" id="chengji">
+    <div class="txt">
+      <div class="step">第三遍 · 公司</div>
+      <h2>城基</h2>
+      <p class="claim">时间一长，股票的回报就是这门生意的回报。</p>
+      <p id="t3"></p>
+      <p class="note">持股回报用复权价计算，包含分红。这里只统计今天还在图上的公司，退市的没有算进去，所以低回报率那几档的实际结果比图上更差。</p>
+    </div>
+    <div class="viz">
+      <div class="fig">
+        <h3>事后看：生意的回报率，决定了持股的回报</h3>
+        <p class="sub" id="fateSub"></p>
+        <div class="ctl"><span>买入时间</span><span class="seg" id="segFate"></span></div>
+        <div class="legend"><span><i style="background:var(--c1);height:4px"></i>中间一半公司的范围</span><span><i class="dot" style="background:var(--fg)"></i>中位数</span></div>
+        <div class="plot" id="pFate"></div>
+        <details class="more"><summary>查看数据表</summary><div class="scroll"><table class="dt num" id="tFate"></table></div></details>
+      </div>
+      <div class="fig">
+        <h3>高回报会褪色</h3>
+        <p class="sub" id="fadeSub"></p>
+        <div class="legend" id="lgFade"></div>
+        <div class="plot" id="pFade"></div>
+        <p class="say" id="sFade"></p>
+      </div>
+      <div class="fig">
+        <h3>涨得最多的五十座城，靠的是什么</h3>
+        <p class="sub" id="topSub"></p>
+        <div class="tiles" id="tilesTop"></div>
+        <div class="plot" id="pTop"></div>
+        <details class="more"><summary>这五十家公司</summary><div class="scroll scrollx"><table class="dt num" id="tTop"></table></div></details>
+      </div>
+    </div>
+  </section>
+
+  <section class="ch" id="dijia">
+    <div class="txt">
+      <div class="step">第四遍 · 价格</div>
+      <h2>地价</h2>
+      <p class="claim">好公司买贵了，一样不赚钱。</p>
+      <p id="t4"></p>
+      <p class="note">市盈率（PE）= 市值 ÷ 上一年的归母净利润。分组只用当时已经公布的年报，没有用到后来的数字。每一格里是很多家公司的中位数，单家公司的结果相差很大。</p>
+    </div>
+    <div class="viz">
+      <div class="fig">
+        <h3>在某一年年底，按“过去的回报率”和“当时的价格”分组买入</h3>
+        <p class="sub" id="btSub"></p>
+        <div class="ctl"><span>买入时间</span><span id="btYears" style="display:inline-flex;flex-wrap:wrap;gap:6px"></span></div>
+        <div class="ctl"><span>持有</span><span class="seg" id="segHold"><button data-h="5">五年</button><button data-h="0" aria-pressed="true">到今天</button></span></div>
+        <div class="tiles" id="tilesBt"></div>
+        <div class="scrollx"><table class="heat num" id="tBt"></table></div>
+        <div class="heatkey"><span>年化亏损</span><i></i><span>年化盈利</span><span style="margin-left:10px">每格：中位数的年化回报 · 公司家数</span></div>
+      </div>
+      <div class="fig">
+        <h3>今天的地价：各国的市盈率，和它自己的历史比</h3>
+        <p class="sub" id="peSub"></p>
+        <div class="legend"><span><i style="background:var(--mute);height:4px"></i>2010–2025年各年末的范围</span><span><i style="background:var(--fg);width:2px;height:11px;vertical-align:-1px"></i>历史中位数</span><span><i class="dot" style="background:var(--gold)"></i>现在</span></div>
+        <div class="plot" id="pPe"></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="ch" id="xuncheng">
+    <div class="txt">
+      <div class="step">叠起来 · 筛选</div>
+      <h2>寻城</h2>
+      <p class="claim">四道筛子叠起来，剩下的城不多。</p>
+      <p id="t5"></p>
+      <p class="note">筛出来的是“过去十年像一家好公司、今天的价格不比它自己的历史贵”的名单，是研究的起点，不是结论。高回报会褪色：名单里的每一家，都要问它凭什么还能再好十年。</p>
+    </div>
+    <div class="viz">
+      <div class="fig">
+        <h3>自己动手筛</h3>
+        <p class="sub">条件可以随意改，名单和图会跟着变。点图上的一个点或表里的一行，下面会出现这家公司的财报小传。</p>
+        <div class="ctl"><span>看几年的年报</span><span class="seg" id="segW"><button data-w="10" aria-pressed="true">十年</button><button data-w="5">五年</button></span>
+          <span>范围</span><select id="selScope" aria-label="范围"></select>
+          <span style="position:relative"><input type="search" id="q" placeholder="直接查一家公司" autocomplete="off" aria-label="查一家公司" style="width:11em"><span id="suggest" hidden></span></span></div>
+        <div class="filters">
+          <label><span class="k">平均净资产收益率 ≥</span><input type="range" id="fRoe" min="0" max="30" step="1" value="15"><b class="num" id="vRoe"></b></label>
+          <label><span class="k">最近一年 ≥</span><input type="range" id="fLast" min="0" max="30" step="1" value="12"><b class="num" id="vLast"></b></label>
+          <label><span class="k">市盈率 ≤</span><input type="range" id="fPe" min="5" max="100" step="5" value="100"><b class="num" id="vPe"></b></label>
+        </div>
+        <div class="chips" id="chips"></div>
+        <p id="resSum"></p>
+        <div class="legend"><span><i class="dot" style="background:var(--c1)"></i>通过筛选</span><span><i class="dot" style="background:var(--mute)"></i>其余有完整年报的公司</span></div>
+        <div class="plot" id="pMap"></div>
+        <div class="scrollx" style="margin-top:14px"><table class="dt num" id="tRes"></table></div>
+        <p style="margin:10px 0 0"><button class="chip" id="moreRes" hidden></button></p>
+        <div id="detail" hidden></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="ch" id="fenpei">
+    <div class="txt">
+      <div class="step">最后 · 注意力</div>
+      <h2>分配</h2>
+      <p class="claim">注意力是最稀缺的资本，平均分配等于大半浪费。</p>
+      <p id="t6"></p>
+      <p class="note">三类地的划分和每一类该看什么，是 AI（Claude）在2026年11月的判断，会错，也会过时。它不知道你的情况，不是投资建议。</p>
+    </div>
+    <div class="viz">
+      <div class="fig">
+        <h3>平均分配，注意力会花在哪里</h3>
+        <p class="sub" id="attSub"></p>
+        <div class="legend"><span><i class="ring"></i>公司家数占比（平均分配）</span><span><i class="dot" style="background:var(--c3)"></i>市值占比（跟着指数）</span><span><i class="dot" style="background:var(--c1)"></i>十年一直赚钱的公司占比</span></div>
+        <div class="plot" id="pAtt"></div>
+      </div>
+      <div class="fig">
+        <h3>如果让 AI 来分：三类地，三种看法</h3>
+        <p class="sub">不同的地，值得看的东西不一样。把同一把尺子用在所有公司身上，是另一种平均分配。</p>
+        <div class="tiers" id="tiers"></div>
+      </div>
+      <div class="fig">
+        <h3>出手之前，过三道闸</h3>
+        <p class="sub">“观潮”里的规律，在这里是检查项。数字是今天的。</p>
+        <ul class="gates" id="gates"></ul>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <h2>口径与边界</h2>
+  <ul>
+    <li>市值与地图相同：沪深A股每月末的总市值，含已退市公司，不含北交所；最后一个月是2026年10月。年报取自公开数据集，利润表和现金流量表从2010年报起，到2025年报止，所以“十年”指2016–2025财年。今天的市盈率用2026年10月末的市值除以2025年的归母净利润，没有用2026年的季报。</li>
+    <li>净资产收益率 = 当年归母净利润 ÷ 年初与年末归母净资产的平均数。上市前的年份来自招股书，只画在公司的小传里，不参与筛选；筛选要求公司在这段年份开始之前已经上市。</li>
+    <li>持股回报用复权收盘价计算，等于把分红再买成股票后的市值变化，只在每年12月末和最后一个月取值。市值的变化还包含增发和资产注入，两者不是一回事。</li>
+    <li>现金含量 = 这些年经营现金流合计 ÷ 归母净利润合计。约一半公司的2025年现金流量表没有取到，这些公司算到2024年。金融公司不看这一项。研发费用只在2025年报里有，约一半公司取到。</li>
+    <li>前沿和候选国的公司名单是按主营业务人工挑选的，边界有主观成分。高校专业数字来自教育部历年公布的本科专业备案和审批结果及公开报道；学科和政策节点按公开报道的日期标注。</li>
+    <li>数据集本身可能有错漏，单家公司的数字请以公司公告为准。文字说明和“AI的注意力”由 AI（Claude）编写。</li>
+  </ul>
+  <p>本页不构成投资建议。 <a href="index.html">回到地图</a> · <a href="guanchao.html">观潮：六条规律</a> · <a href="https://github.com/wanglu2016/agu-jiangyu" target="_blank" rel="noopener">源代码、数据来源与离线版</a></p>
+</footer>
+<div id="tt" hidden></div>
+
+<script src="assets/lib/d3.min.js"></script>
+<script src="assets/data.js"></script>
+<script src="assets/extra.js"></script>
+<script src="assets/quality.js"></script>
+<script src="assets/faxian.js"></script>
+</body>
+</html>

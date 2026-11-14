@@ -68,6 +68,15 @@ button { cursor: pointer; }
 #bar nav a.on { color: var(--fg); border-bottom-color: var(--gold); font-weight: 700; }
 #bar .go { flex: none; padding: 6px 14px; border-radius: 999px; border: 1px solid var(--malachite); color: var(--malachite); text-decoration: none; font-size: 13.5px; white-space: nowrap; }
 #bar .go:hover { background: var(--malachite); color: var(--panel); }
+#bar .go.alt { border-color: transparent; padding: 6px 4px; font-weight: 700; }
+#bar .go.alt:hover { background: transparent; color: var(--malachite); text-decoration: underline; }
+#next { max-width: 1180px; margin: 0 auto; padding: 56px max(22px, env(safe-area-inset-right, 0px)) 8px max(22px, env(safe-area-inset-left, 0px)); }
+#next a { display: grid; grid-template-columns: 300px minmax(0, 1fr); gap: 0 56px; align-items: baseline; padding: 22px 0; border-top: 2px solid var(--fg); border-bottom: 1px solid var(--line-2); color: inherit; text-decoration: none; }
+#next .k { font-size: 12.5px; letter-spacing: .16em; color: var(--gold); font-weight: 700; }
+#next b { display: block; font-family: var(--serif); font-weight: 900; font-size: 34px; letter-spacing: .1em; line-height: 1.3; }
+#next p { margin: 0; color: var(--fg-2); max-width: 44em; }
+#next p span { color: var(--malachite); font-weight: 700; white-space: nowrap; }
+#next a:hover b { text-decoration: underline; text-underline-offset: 6px; text-decoration-thickness: 2px; }
 
 /* 海面 */
 #hero { position: relative; background: var(--sea); border-bottom: 1px solid var(--line-2); overflow: hidden; }
@@ -180,6 +189,9 @@ footer p { margin: 14px 0 0; }
   #bar { gap: 10px; }
   #bar .home span { display: none; }
   #bar .home b { margin-left: 0; }
+  #bar .go.alt { display: none; }
+  #next a { display: block; }
+  #next b { font-size: 28px; margin-bottom: 8px; }
   .tile .v { font-size: 23px; }
 }
 @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
@@ -191,6 +203,7 @@ footer p { margin: 14px 0 0; }
   <nav aria-label="章节">
     <a href="#shuiwei">水位</a><a href="#zaolu">造陆</a><a href="#fengzhi">峰值</a><a href="#jutou">巨头</a><a href="#shaoshu">少数</a><a href="#guojie">国界</a>
   </nav>
+  <a class="go alt" href="faxian.html">发现好公司</a>
   <a class="go" href="index.html">打开地图</a>
 </header>
 
@@ -304,7 +317,7 @@ footer p { margin: 14px 0 0; }
       <h2>少数</h2>
       <p class="claim">多数公司原地踏步，少数公司带来了几乎全部的增量。</p>
       <p id="t5"></p>
-      <p class="note">市值里含增发和重组注入的资产，摊到每一股，多数公司的成绩还要更差一些。</p>
+      <p class="note">市值里含增发和重组注入的资产，摊到每一股，多数公司的成绩还要更差一些。那少数公司是什么样子、出自哪里，见<a href="faxian.html#chengji">发现好公司</a>。</p>
     </div>
     <div class="viz">
       <div class="fig">
@@ -351,6 +364,11 @@ footer p { margin: 14px 0 0; }
   </section>
 </main>
 
+<section id="next" aria-label="下一页">
+  <a href="faxian.html"><div><div class="k">下一页</div><b>发现好公司</b></div>
+  <p>六条规律说的多半是不要做什么：别在水位高的时候买，别追版图最大的国，别以为巨头永远是巨头。接下来的问题是把注意力放在哪里。从学科往产业、公司、价格筛四遍，用年报看哪片土壤养人、哪座城根基扎实。 <span>去看看 →</span></p></a>
+</section>
+
 <footer>
   <h2>口径与边界</h2>
   <ul>
@@ -359,7 +377,7 @@ footer p { margin: 14px 0 0; }
     <li>“老公司的市值”（地价指数）不是股票指数：它不含分红，却包含增发和资产注入带来的市值。用它看长期的方向可以，不宜当作收益率。</li>
     <li>单家公司个别月份的数值可能有误。本页的文字说明由 AI（Claude）编写，数字由页面根据数据实时计算。</li>
   </ul>
-  <p>本页不构成投资建议。 <a href="index.html">回到地图</a> · <a href="https://github.com/wanglu2016/agu-jiangyu" target="_blank" rel="noopener">源代码、数据来源与离线版</a></p>
+  <p>本页不构成投资建议。 <a href="index.html">回到地图</a> · <a href="faxian.html">发现好公司</a> · <a href="https://github.com/wanglu2016/agu-jiangyu" target="_blank" rel="noopener">源代码、数据来源与离线版</a></p>
 </footer>
 <div id="tt" hidden></div>
 

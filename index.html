@@ -115,7 +115,7 @@ button { cursor: pointer; }
 #suggest .c { color: var(--fg-3); font-size: 12px; text-align: right; }
 #suggest .m { grid-column: 1 / -1; color: var(--fg-3); font-size: 12px; }
 #tabs { display: flex; gap: 2px; padding-block: 8px 0; padding-left: max(12px, env(safe-area-inset-left, 0px)); padding-right: max(12px, env(safe-area-inset-right, 0px)); overflow-x: auto; border-bottom: 1px solid var(--line); }
-#tabs button { border: 0; background: transparent; padding: 8px 10px 9px; color: var(--fg-3); font-size: 13.5px; border-bottom: 2px solid transparent; margin-bottom: -1px; }
+#tabs button { border: 0; background: transparent; padding: 8px 7px 9px; color: var(--fg-3); font-size: 13.5px; border-bottom: 2px solid transparent; margin-bottom: -1px; white-space: nowrap; flex: none; }
 #tabs button[aria-selected="true"] { color: var(--fg); border-bottom-color: var(--gold); font-weight: 700; }
 #pages { flex: 1; min-height: 0; overflow: auto; padding-block: 14px 24px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
 .page[hidden] { display: none; }
@@ -156,9 +156,15 @@ h2.sec { font-family: var(--serif); font-weight: 900; font-size: 21px; margin: 0
 .notes code { font-size: 12px; background: var(--panel-2); padding: 1px 4px; border-radius: 4px; }
 .foot { margin-top: 18px; font-size: 12px; color: var(--fg-3); line-height: 1.6; }
 
-#toTide { margin-left: auto; padding: 8px 10px 9px; font-size: 13.5px; color: var(--malachite); text-decoration: none; white-space: nowrap; font-weight: 700; }
-#toTide::after { content: ""; display: inline-block; width: 6px; height: 6px; margin-left: 5px; border-top: 1.5px solid currentColor; border-right: 1.5px solid currentColor; transform: rotate(45deg) translateY(-1px); }
-#toTide:hover { text-decoration: underline; text-underline-offset: 3px; }
+#tabs a.out { flex: none; padding: 8px 4px 9px; font-size: 13.5px; color: var(--malachite); text-decoration: none; white-space: nowrap; font-weight: 700; }
+#tabs a.out:first-of-type { margin-left: auto; }
+#tabs a.out::after { content: ""; display: inline-block; width: 6px; height: 6px; margin-left: 4px; border-top: 1.5px solid currentColor; border-right: 1.5px solid currentColor; transform: rotate(45deg) translateY(-1px); }
+#tabs a.out:hover { text-decoration: underline; text-underline-offset: 3px; }
+.finbars { display: block; width: 100%; height: 64px; margin: 6px 0 2px; }
+.finbars rect { fill: var(--malachite); }
+.finbars rect.pre { opacity: .35; }
+.finbars line { stroke: var(--gold); stroke-width: 1; }
+.finbars text { font-size: 10.5px; fill: var(--fg-3); }
 .prose.sm { font-size: 13px; line-height: 1.75; margin-top: 8px; }
 .prose.dim { color: var(--fg-3); font-size: 12px; }
 .prose b { color: var(--fg); }
@@ -238,7 +244,8 @@ h2.sec { font-family: var(--serif); font-weight: 900; font-size: 21px; margin: 0
       <button role="tab" data-tab="realms" aria-selected="false">诸国</button>
       <button role="tab" data-tab="detail" aria-selected="false">详情</button>
       <button role="tab" data-tab="notes" aria-selected="false">资料与边界</button>
-      <a id="toTide" href="guanchao.html" title="从这张图里读出的六条规律">观潮</a>
+      <a class="out" id="toTide" href="guanchao.html" title="从这张图里读出的六条规律">观潮</a>
+      <a class="out" id="toFind" href="faxian.html" title="发现好公司：从学科、产业、公司、价格筛四遍">好公司</a>
     </div>
     <div id="pages">
       <section class="page" data-page="now"></section>
@@ -827,7 +834,7 @@ function renderNow(t) {
     ${seaCard(t)}
     <div class="card"><div class="label">${ym(t)} · 全图市值前十</div><div class="rows">${top.map(([o], i) => coRow(o, t, i + 1)).join('')}</div>${topFate(t, top)}</div>
     ${pro}
-    <div class="card"><div class="label">读图</div><a class="linkbtn" href="guanchao.html">观潮：从这张图里读出的六条规律</a><br><a class="linkbtn" style="display:inline-block;margin-top:8px" href="video.html">观看视频：怎么用、能看什么（4分38秒）</a></div>
+    <div class="card"><div class="label">读图</div><a class="linkbtn" href="guanchao.html">观潮：从这张图里读出的六条规律</a><br><a class="linkbtn" style="display:inline-block;margin-top:8px" href="faxian.html">发现好公司：从学科、产业、公司、价格筛四遍</a><br><a class="linkbtn" style="display:inline-block;margin-top:8px" href="video.html">观看视频：怎么用、能看什么（4分38秒）</a></div>
     <div class="card"><div class="label">年表</div>${ERAS.map(x => `<button class="linkbtn" style="display:block;margin:6px 0;text-align:left" data-goto="${x.a}">${x.a.slice(0, 4)}–${x.b.slice(0, 4)} ${x.t}</button>`).join('')}</div>`;
   bindRows(pages.now);
   pages.now.querySelectorAll('[data-goto]').forEach(b => b.onclick = () => { stop(); setTime(MONTHS.indexOf(b.dataset.goto), true); });
@@ -917,7 +924,7 @@ function renderDetail(t) {
       ${t !== pk && ser[t] > 0 ? `<dt>此时相当于</dt><dd>最大时的 ${Math.round(ser[t] / ser[pk] * 100)}%</dd>` : ''}
       ${after !== null ? `<dt>最大两年后</dt><dd>${ym(pk + 24)}占 ${fmtPct(ser[pk + 24])}，剩 ${Math.round(after)}%</dd>` : ''}</dl>
       <canvas class="chart" id="dchart"></canvas>
-      ${s.cand ? '' : `<p class="prose sm dim">版图最大的时候，往往也是这个行业最受追捧的时候。本图原有的30国里，有 ${PEAK_RULE.n} 国的最大版图超过全图3%且已过去两年以上：两年后平均只剩 ${Math.round(PEAK_RULE.avg)}%，保住最多的也只剩 ${Math.round(PEAK_RULE.max)}%。 <a class="linkbtn" href="guanchao.html#fengzhi">看30国的峰值</a></p>`}
+      ${s.cand ? '' : `<p class="prose sm dim">版图最大的时候，往往也是这个行业最受追捧的时候。本图原有的30国里，有 ${PEAK_RULE.n} 国的最大版图超过全图3%且已过去两年以上：两年后平均只剩 ${Math.round(PEAK_RULE.avg)}%，保住最多的也只剩 ${Math.round(PEAK_RULE.max)}%。 <a class="linkbtn" href="guanchao.html#fengzhi">看30国的峰值</a> · <a class="linkbtn" href="faxian.html#wotu">看各国的回报率和市盈率</a></p>`}
       <div class="card"><div class="label">${ym(t)} · 该国前十</div><div class="rows">${members.slice(0, 10).map(([o], i) => coRow(o, t, i + 1)).join('') || '<p class="empty">此时没有公司</p>'}</div></div>`;
     bigChart(document.getElementById('dchart'), ser, t, chip(s), { fmt: v => v + '%', area: true });
     bindRows(P); return;
@@ -943,10 +950,39 @@ function renderDetail(t) {
     </dl>
     <canvas class="chart" id="dchart"></canvas>
     <div class="card"><div class="label">疆域归属</div><div class="trail">${trail}</div></div>
+    <div class="card"><div class="label">年报${FIN ? ' · ' + FIN.fy0 + '–' + FIN.fy1 : ''}</div><div id="finbody">${finHTML(o)}</div></div>
     ${estTxt}
     ${!alive ? `<p style="margin-top:12px"><button class="linkbtn" id="jump">跳到${t < o.a ? '上市' : '退市前'}的月份</button></p>` : ''}`;
   bigChart(document.getElementById('dchart'), series, t, chip(s), { fmt: v => v >= 10000 ? (v / 10000) + '万亿' : v + '亿' });
   const j = document.getElementById('jump'); if (j) j.onclick = () => { stop(); setTime(t < o.a ? o.a : o.b, true); };
+}
+// 年报摘要：第一次点开一家公司时才加载 assets/quality.js（“发现好公司”页用的同一份数据）
+let FIN = null, finState = 0;
+function loadFin() {
+  if (finState) return; finState = 1;
+  const sc = document.createElement('script'); sc.src = 'assets/quality.js';
+  sc.onload = () => { const q = window.AGU_Q, raw = Uint8Array.from(atob(q.fin), c => c.charCodeAt(0));
+    FIN = { fy0: q.fy0, fy1: q.fy1, ny: q.fy1 - q.fy0 + 1, f: new Int16Array(raw.buffer, raw.byteOffset, raw.byteLength / 2) }; finState = 2; if (tab === 'detail') renderPanels(); };
+  sc.onerror = () => { finState = 3; if (tab === 'detail') renderPanels(); };
+  document.head.appendChild(sc);
+}
+function finHTML(o) {
+  if (finState === 3) return '<p class="prose sm dim">年报数据没有读到。</p>';
+  if (!FIN) { loadFin(); return '<p class="prose sm dim">正在读取年报…</p>'; }
+  const NY = FIN.ny, b = o.j * (NY * 4 + 1), dq = q => q === -32768 ? NaN : q === 0 ? 0 : Math.sign(q) * Math.pow(10, (Math.abs(q) - 1) / 3200 - 4);
+  const ni = [], roe = [];
+  for (let k = 0; k < NY; k++) { const n = dq(FIN.f[b + NY + k]), e0 = dq(FIN.f[b + 2 * NY + k]), e1 = dq(FIN.f[b + 2 * NY + k + 1]), e = e1 > 0 ? (e0 > 0 ? (e0 + e1) / 2 : e1) : NaN; ni.push(n); roe.push(isFinite(n) && e > 0 ? n / e * 100 : NaN); }
+  const link = `<a class="linkbtn" href="faxian.html#co=${o.code}">在“发现好公司”里看它的财报小传</a>`;
+  if (!roe.some(isFinite)) return `<p class="prose sm dim">没有取到这家公司的年报。 ${link}</p>`;
+  const ly = +MONTHS[o.a].slice(0, 4), last10 = roe.slice(NY - 10).filter(isFinite), avg = last10.length ? last10.reduce((x, y) => x + y, 0) / last10.length : NaN;
+  const W = 320, H = 64, bw = W / NY, vals = roe.filter(isFinite), mx = Math.min(60, Math.max(20, ...vals)), mn = Math.max(-30, Math.min(0, ...vals)), y = v => 4 + (mx - Math.max(mn, Math.min(mx, v))) / (mx - mn) * (H - 18);
+  const bars = roe.map((v, k) => isFinite(v) ? `<rect class="${FIN.fy0 + k < ly ? 'pre' : ''}" x="${(k * bw + 1.5).toFixed(1)}" y="${Math.min(y(v), y(0)).toFixed(1)}" width="${(bw - 3).toFixed(1)}" height="${Math.max(1, Math.abs(y(v) - y(0))).toFixed(1)}" rx="1.5"></rect>` : '').join('');
+  const n1 = ni[NY - 1], pe = o.b === LAST && n1 > 0 ? capAt(o, LAST) / n1 : NaN;
+  return `<svg class="finbars" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" role="img" aria-label="历年净资产收益率"><line x1="0" x2="${W}" y1="${y(15).toFixed(1)}" y2="${y(15).toFixed(1)}"></line>${bars}</svg>
+    <div class="prose sm dim" style="display:flex;justify-content:space-between;margin-top:0"><span>${FIN.fy0}</span><span>净资产收益率，金线是15%${FIN.fy0 < ly ? '，浅色为上市前' : ''}</span><span>${FIN.fy1}</span></div>
+    <dl class="facts num">${last10.length ? `<dt>${last10.length === 10 ? '十年平均' : '近' + last10.length + '年平均'}</dt><dd>净资产收益率 ${avg.toFixed(1).replace('-', '−')}%，${last10.filter(v => v >= 15).length} 年在15%以上</dd>` : ''}
+      ${isFinite(n1) ? `<dt>${FIN.fy1}年</dt><dd>归母净利润 ${n1 < 0 ? '−' : ''}${fmtYi(Math.abs(n1))}${o.b === LAST ? (isFinite(pe) ? `，市盈率 ${pe >= 100 ? Math.round(pe) : pe.toFixed(1)} 倍` : '，亏损') : ''}</dd>` : ''}</dl>
+    <p class="prose sm" style="margin-top:8px">${link}</p>`;
 }
 function select(sel) {
   selected = sel; showTab('detail'); draw();
@@ -1001,6 +1037,7 @@ pages.notes.innerHTML = `
 <li>每日价格（含已退市公司）：<a href="https://github.com/chenditc/investment_data" target="_blank" rel="noopener">chenditc/investment_data</a> 的 qlib 数据包，整合了 Wind、Tushare 等来源，2000年起。</li>
 <li>总市值与总股本：<a href="https://github.com/L2Wscorpio/ashare-market-data" target="_blank" rel="noopener">L2Wscorpio/ashare-market-data</a> 的估值表，2000年起。</li>
 <li>流通股本、逐月证监会行业分类、公司名称：<a href="https://github.com/noblechang/a-share-data" target="_blank" rel="noopener">noblechang/a-share-data</a>（BaoStock 数据快照，2010年起，含退市股）。</li>
+<li>公司详情里的年报摘要、“发现好公司”页的财报和持股回报：三大报表取自 L2Wscorpio/ashare-market-data（2010–2025年报），复权价取自 chenditc/investment_data。</li>
 </ul>
 <h3>怎么算的</h3>
 <ul>
@@ -1033,19 +1070,22 @@ pages.notes.innerHTML = `
 <li>“退市”包括被吸收合并（如中国北车、海通证券），${CO.filter(o => o.b < LAST).length} 家。</li>
 <li>本图适合看行业版图的大势，不宜当作个股数据来源，也不构成投资建议。时代解说由 AI（Claude）编写，可能有错漏。</li>
 </ul>
-<p class="foot">最后一帧：2026年10月30日收盘。<br><a href="guanchao.html">观潮：从这张图里读出的六条规律</a> · <a href="video.html">观看使用讲解视频（4分38秒）</a> · <a href="https://github.com/wanglu2016/agu-jiangyu" target="_blank" rel="noopener">源代码与离线版</a></p>`;
+<p class="foot">最后一帧：2026年10月30日收盘。<br><a href="guanchao.html">观潮：从这张图里读出的六条规律</a> · <a href="faxian.html">发现好公司</a> · <a href="video.html">观看使用讲解视频（4分38秒）</a> · <a href="https://github.com/wanglu2016/agu-jiangyu" target="_blank" rel="noopener">源代码与离线版</a></p>`;
 
 // ---------------------------------------------------------------- 启动
 refreshColors();
 matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => { refreshColors(); draw(); drawTrack(); renderPanels(); });
 new MutationObserver(() => { refreshColors(); draw(); drawTrack(); renderPanels(); }).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
 const h0 = location.hash.slice(1); const i0 = MONTHS.indexOf(h0); if (i0 >= 0) T = i0;
-window.addEventListener('hashchange', () => { const i = MONTHS.indexOf(location.hash.slice(1)); if (i >= 0 && i !== Math.round(T)) { stop(); setTime(i, false); } });
+const hashCo = () => { const h = location.hash.slice(1); return h.startsWith('co=') ? byCode.get(h.slice(3)) : null; };   // faxian.html 里“在地图上看这座城”
+const co0 = hashCo(); if (co0) { if (T < co0.a || T > co0.b) T = co0.b; selected = { type: 'co', j: co0.j }; }
+window.addEventListener('hashchange', () => { const o = hashCo(); if (o) { pick(o); return; } const i = MONTHS.indexOf(location.hash.slice(1)); if (i >= 0 && i !== Math.round(T)) { stop(); setTime(i, false); } });
 window.addEventListener('resize', () => { resize(); });
 new ResizeObserver(() => resize()).observe(stage);
 setPlayIcon();
 onTimeChange(false);
 resize();
+if (co0) showTab('detail');
 if (document.fonts && document.fonts.load) {
   const txt = SECT.map(s => s.n + s.short).join('') + '0123456789.%万亿';
   Promise.all([document.fonts.load(`900 24px "Noto Serif SC"`, txt), document.fonts.load(`500 13px "Noto Sans SC"`, '0123456789.%万亿')]).catch(() => {}).then(() => { draw(); drawTrack(); });
