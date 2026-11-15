@@ -1,0 +1,501 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>港股通 · A股疆域图</title>
+<meta name="description" content="精通港股：港股通能买什么，同一家公司在A股和H股为什么价格不同，股息扣税后还剩多少，港股有哪些A股没有的暗礁，以及怎样用A股年报给两地上市的公司做体检。两百多对A+H公司的价差由页面实时计算。">
+<meta property="og:title" content="港股通 · 从港股通里挑公司">
+<meta property="og:description" content="同一家公司，两个价格。H股的折扣，大半是给“小、冷、差”打的；股息率要先打个八折再看。">
+<meta property="og:image" content="assets/preview-ganggu.jpg">
+<meta name="theme-color" content="#dde6e2">
+<link rel="icon" href="assets/icon.svg" type="image/svg+xml">
+<style>html,body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
+<link rel="stylesheet" href="assets/fonts/fonts.css">
+<style>
+/* 港股通：一册“过海记”。同一套矿物颜料；青金是对岸，金是价差。 */
+:root {
+  --sea: #dde6e2; --water: #b9cfcd; --water-2: #a5c1c0; --water-line: rgba(38, 84, 86, 0.30);
+  --panel: #f6f4ee; --panel-2: #ece9e0; --line: rgba(40, 52, 48, 0.13); --line-2: rgba(40, 52, 48, 0.28);
+  --fg: #1c2522; --fg-2: #4b5853; --fg-3: #737f79;
+  --gold: #8f6418; --cinnabar: #b8432b; --malachite: #2f7a63;
+  --c1: #1f8466; --c2: #b8432b; --c3: #2f63a8; --c4: #a8791f; --mute: #a3aca6;
+  --o1: #7eb1a0; --o2: #699b8b; --o3: #548676; --o4: #3f7162; --o5: #2b5d4f; --o6: #164a3c; --o7: #00372a;
+  --band: rgba(143, 100, 24, 0.14);
+  --pos: 47, 122, 99; --neg: 184, 67, 43;
+  --tip: rgba(28, 37, 34, 0.95); --tip-fg: #f3efe4;
+  --serif: "Noto Serif SC", "Source Han Serif SC", "Songti SC", "STSong", serif;
+  --sans: "Noto Sans SC", "Source Han Sans SC", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --sea: #0d1a20; --water: #17333b; --water-2: #1d3f48; --water-line: rgba(150, 205, 200, 0.22);
+    --panel: #111e24; --panel-2: #172830; --line: rgba(210, 225, 215, 0.11); --line-2: rgba(210, 225, 215, 0.26);
+    --fg: #ebe6d6; --fg-2: #b6bdb4; --fg-3: #8a9690;
+    --gold: #d8b66c; --cinnabar: #e2694c; --malachite: #79b9a0;
+    --c1: #3fa682; --c2: #dd6245; --c3: #5c90d8; --c4: #b18a2c; --mute: #5d6c68;
+    --o1: #19604e; --o2: #317461; --o3: #478975; --o4: #5c9e8a; --o5: #72b49f; --o6: #88cbb5; --o7: #9ee2cb;
+    --band: rgba(216, 182, 108, 0.14);
+    --pos: 121, 185, 160; --neg: 226, 105, 76;
+    --tip: rgba(236, 231, 216, 0.97); --tip-fg: #14211f; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --sea: #0d1a20; --water: #17333b; --water-2: #1d3f48; --water-line: rgba(150, 205, 200, 0.22);
+  --panel: #111e24; --panel-2: #172830; --line: rgba(210, 225, 215, 0.11); --line-2: rgba(210, 225, 215, 0.26);
+  --fg: #ebe6d6; --fg-2: #b6bdb4; --fg-3: #8a9690;
+  --gold: #d8b66c; --cinnabar: #e2694c; --malachite: #79b9a0;
+  --c1: #3fa682; --c2: #dd6245; --c3: #5c90d8; --c4: #b18a2c; --mute: #5d6c68;
+  --o1: #19604e; --o2: #317461; --o3: #478975; --o4: #5c9e8a; --o5: #72b49f; --o6: #88cbb5; --o7: #9ee2cb;
+  --band: rgba(216, 182, 108, 0.14);
+  --pos: 121, 185, 160; --neg: 226, 105, 76;
+  --tip: rgba(236, 231, 216, 0.97); --tip-fg: #14211f; color-scheme: dark;
+}
+html { scroll-behavior: smooth; scroll-padding-top: 64px; }
+body { background: var(--panel); color: var(--fg); font-family: var(--sans); font-size: 15px; line-height: 1.85; -webkit-font-smoothing: antialiased; }
+a { color: var(--malachite); text-underline-offset: 3px; }
+button, input, select { font: inherit; color: inherit; }
+button { cursor: pointer; }
+:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+.num { font-variant-numeric: tabular-nums; }
+
+/* 顶栏 */
+#bar { position: sticky; top: 0; z-index: 20; display: flex; align-items: center; gap: 14px; height: 52px; padding: 0 max(18px, env(safe-area-inset-right, 0px)) 0 max(18px, env(safe-area-inset-left, 0px)); background: var(--panel); border-bottom: 1px solid var(--line); }
+#bar .home { font-family: var(--serif); font-weight: 600; letter-spacing: .18em; font-size: 14px; color: var(--fg-2); text-decoration: none; white-space: nowrap; }
+#bar .home b { color: var(--fg); font-weight: 900; margin-left: .6em; letter-spacing: .1em; }
+#bar nav { display: flex; gap: 2px; margin-left: auto; overflow-x: auto; scrollbar-width: none; }
+#bar nav::-webkit-scrollbar { display: none; }
+#bar nav a { padding: 6px 10px; font-size: 14px; color: var(--fg-2); text-decoration: none; white-space: nowrap; border-bottom: 2px solid transparent; }
+#bar nav a:hover { color: var(--fg); }
+#bar nav a.on { color: var(--fg); border-bottom-color: var(--gold); font-weight: 700; }
+#bar .go { flex: none; padding: 6px 14px; border-radius: 999px; border: 1px solid var(--malachite); color: var(--malachite); text-decoration: none; font-size: 13.5px; white-space: nowrap; }
+#bar .go:hover { background: var(--malachite); color: var(--panel); }
+#bar .go.alt { border-color: transparent; padding: 6px 4px; font-weight: 700; }
+#bar .go.alt:hover { background: transparent; color: var(--malachite); text-decoration: underline; }
+
+/* 页首：筛出来的台地 */
+#hero { background: var(--sea); border-bottom: 1px solid var(--line-2); }
+#hero .in { max-width: 1180px; margin: 0 auto; display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 6fr); gap: 24px 64px; align-items: end; padding: clamp(32px, 7vh, 72px) max(22px, env(safe-area-inset-right, 0px)) clamp(30px, 6vh, 56px) max(22px, env(safe-area-inset-left, 0px)); }
+#hero h1 { margin: 0; font-family: var(--serif); font-weight: 900; font-size: clamp(44px, 6.6vw, 84px); line-height: 1.08; letter-spacing: .08em; }
+#hero .lede { margin: 20px 0 0; max-width: 30em; font-size: clamp(15px, 1.5vw, 17px); line-height: 1.9; color: var(--fg-2); }
+#hero .lede b { color: var(--fg); }
+#hero .how { margin: 16px 0 0; font-size: 13px; line-height: 1.75; color: var(--fg-3); max-width: 36em; }
+.sieve { margin: 0; padding: 0; list-style: none; }
+.sieve li { display: grid; grid-template-columns: 6.6em minmax(0, 1fr); gap: 0 14px; align-items: center; padding: 9px 0; border-top: 1px solid var(--water-line); }
+.sieve li:first-child { border-top: 0; }
+.sieve .n { font-family: var(--serif); font-weight: 900; font-size: clamp(24px, 2.8vw, 34px); line-height: 1.1; text-align: right; white-space: nowrap; }
+.sieve .n small { font-family: var(--sans); font-weight: 400; font-size: 12px; color: var(--fg-3); margin-left: 2px; }
+.sieve .bar { height: 10px; border-radius: 0 4px 4px 0; min-width: 4px; }
+.sieve .k { font-size: 13.5px; line-height: 1.55; color: var(--fg-2); margin-top: 5px; }
+.sieve .k b { color: var(--fg); font-weight: 700; }
+.sieve a { color: inherit; text-decoration: none; display: contents; }
+#sieveNote { margin: 10px 0 0; font-size: 12.5px; color: var(--fg-3); }
+
+/* 章节 */
+main { max-width: 1180px; margin: 0 auto; padding: 0 max(22px, env(safe-area-inset-right, 0px)) 0 max(22px, env(safe-area-inset-left, 0px)); }
+.ch { display: grid; grid-template-columns: 300px minmax(0, 1fr); gap: 0 56px; padding: 72px 0 64px; border-bottom: 1px solid var(--line-2); }
+.ch > .txt { position: sticky; top: 76px; align-self: start; }
+.ch .step { font-size: 12.5px; letter-spacing: .16em; color: var(--gold); font-weight: 700; margin-bottom: 6px; }
+.ch h2 { margin: 0; font-family: var(--serif); font-weight: 900; font-size: 56px; line-height: 1.05; letter-spacing: .12em; }
+.ch .claim { margin: 14px 0 0; font-family: var(--serif); font-weight: 600; font-size: 21px; line-height: 1.55; text-wrap: balance; }
+.ch .txt p { margin: 14px 0 0; color: var(--fg-2); }
+.ch .txt p b { color: var(--fg); font-weight: 700; }
+.ch .txt .note { font-size: 13px; line-height: 1.75; color: var(--fg-3); }
+.fig { margin: 0 0 48px; }
+.fig:last-child { margin-bottom: 0; }
+.fig h3 { margin: 0; font-family: var(--serif); font-weight: 600; font-size: 17px; line-height: 1.5; }
+.fig .sub { margin: 2px 0 10px; font-size: 13px; color: var(--fg-3); line-height: 1.6; max-width: 52em; }
+.plot { position: relative; }
+.plot svg { display: block; touch-action: pan-y; overflow: visible; }
+.axis text, .tick { font-size: 11.5px; fill: var(--fg-3); font-family: var(--sans); }
+.grid { stroke: var(--line); stroke-width: 1; shape-rendering: crispEdges; }
+.zero { stroke: var(--line-2); stroke-width: 1; shape-rendering: crispEdges; }
+.lab { font-size: 12.5px; fill: var(--fg); font-family: var(--sans); }
+.lab.dim { fill: var(--fg-2); font-size: 12px; }
+.lab.b { font-weight: 700; }
+.hp { paint-order: stroke; stroke: var(--panel); stroke-width: 4px; stroke-linejoin: round; }
+.quad { font-size: 12px; fill: var(--fg-3); font-family: var(--serif); font-weight: 600; letter-spacing: .1em; }
+
+/* 控件、图例、数字 */
+.ctl { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin: 0 0 12px; font-size: 13.5px; color: var(--fg-2); }
+.seg { display: inline-flex; border: 1px solid var(--line-2); border-radius: 8px; overflow: hidden; }
+.seg button { border: 0; background: transparent; padding: 5px 12px; font-size: 13.5px; color: var(--fg-2); }
+.seg button + button { border-left: 1px solid var(--line); }
+.seg button[aria-pressed="true"] { background: var(--fg); color: var(--panel); }
+.chip { border: 1px solid var(--line-2); background: transparent; border-radius: 999px; padding: 3px 11px; font-size: 13px; color: var(--fg-2); }
+.chip[aria-pressed="true"] { background: var(--fg); color: var(--panel); border-color: var(--fg); }
+input[type=range] { accent-color: var(--malachite); width: 150px; height: 28px; }
+select, input[type=search] { border: 1px solid var(--line-2); background: var(--panel); border-radius: 8px; padding: 5px 10px; font-size: 13.5px; }
+.legend { display: flex; flex-wrap: wrap; gap: 4px 16px; margin: 0 0 8px; font-size: 12.5px; color: var(--fg-2); }
+.legend i { display: inline-block; width: 14px; height: 3px; border-radius: 2px; margin-right: 6px; vertical-align: 3px; }
+.legend i.box { width: 11px; height: 11px; border-radius: 2px; vertical-align: -1px; }
+.legend i.dot { width: 9px; height: 9px; border-radius: 50%; vertical-align: 0; }
+.legend i.ring { width: 8px; height: 8px; border-radius: 50%; vertical-align: 0; background: transparent; border: 1.5px solid var(--fg-2); }
+.tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 0; margin: 0 0 18px; border-top: 1px solid var(--line-2); border-bottom: 1px solid var(--line); }
+.tile { padding: 12px 14px 12px 0; }
+.tile + .tile { padding-left: 14px; border-left: 1px solid var(--line); }
+.tile .v { font-size: 27px; font-weight: 700; line-height: 1.2; letter-spacing: -0.01em; }
+.tile .k { font-size: 12.5px; color: var(--fg-3); line-height: 1.5; margin-top: 2px; }
+table.dt { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+table.dt th { text-align: right; font-weight: 500; color: var(--fg-3); font-size: 12.5px; padding: 6px 8px; border-bottom: 1px solid var(--line-2); white-space: nowrap; }
+table.dt td { text-align: right; padding: 6px 8px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+table.dt th:first-child, table.dt td:first-child { text-align: left; padding-left: 0; }
+table.dt th.l, table.dt td.l { text-align: left; }
+table.dt td i.sw { display: inline-block; width: 9px; height: 9px; border-radius: 3px; margin-right: 6px; }
+table.dt th button { border: 0; background: transparent; padding: 0; font-size: inherit; color: inherit; font-weight: inherit; }
+table.dt th button:hover { color: var(--fg); }
+table.dt th[aria-sort] button { color: var(--fg); font-weight: 700; }
+table.dt th[aria-sort="descending"] button::after { content: " ↓"; }
+table.dt th[aria-sort="ascending"] button::after { content: " ↑"; }
+table.dt tbody tr.pick { cursor: pointer; }
+table.dt tbody tr.pick:hover td { background: var(--panel-2); }
+table.dt tbody tr.sel td { background: var(--band); }
+details.more { margin-top: 10px; font-size: 13px; }
+details.more summary { cursor: pointer; color: var(--malachite); width: fit-content; }
+details.more .scroll { max-height: 420px; overflow: auto; margin-top: 8px; border-top: 1px solid var(--line); }
+.scrollx { overflow-x: auto; }
+.say { margin: 12px 0 0; font-size: 14px; color: var(--fg-2); max-width: 46em; }
+.say b { color: var(--fg); }
+.pill { display: inline-block; font-size: 11.5px; font-weight: 400; padding: 1px 8px; border-radius: 999px; border: 1px solid var(--line-2); color: var(--fg-2); white-space: nowrap; }
+.pill.warn { border-color: var(--cinnabar); color: var(--cinnabar); }
+.pill.dash { border-style: dashed; }
+
+/* 寻城 */
+.filters { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 10px 26px; margin: 0 0 12px; }
+.filters label { display: flex; align-items: center; gap: 10px; font-size: 13.5px; color: var(--fg-2); }
+.filters label span.k { flex: none; min-width: 7.6em; }
+.filters label b { min-width: 3em; text-align: right; color: var(--fg); }
+.filters input[type=range] { flex: 1; min-width: 80px; width: auto; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px 8px; margin: 0 0 14px; }
+#resSum { margin: 0 0 10px; font-size: 14px; color: var(--fg-2); }
+#resSum b { color: var(--fg); }
+td .mini { display: inline-block; vertical-align: middle; }
+.co-n { font-weight: 700; }
+.co-c { font-size: 11.5px; color: var(--fg-3); margin-left: 6px; }
+#detail { margin-top: 26px; border-top: 2px solid var(--fg); padding-top: 14px; }
+#detail h3 { font-family: var(--serif); font-weight: 900; font-size: 26px; letter-spacing: .06em; margin: 0; display: flex; align-items: baseline; flex-wrap: wrap; gap: 6px 12px; }
+#detail h3 small { font-family: var(--sans); font-weight: 400; font-size: 13px; color: var(--fg-3); letter-spacing: 0; }
+#detail .lead { margin: 6px 0 12px; font-size: 14px; color: var(--fg-2); max-width: 50em; }
+#detail .lead b { color: var(--fg); }
+.trio { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 18px 26px; margin: 4px 0 6px; }
+.trio h5 { margin: 0 0 2px; font-size: 13px; font-weight: 700; }
+.trio .sub { margin: 0 0 4px; font-size: 12px; color: var(--fg-3); }
+ul.check { margin: 10px 0 0; padding: 0; list-style: none; font-size: 13.5px; line-height: 1.7; color: var(--fg-2); }
+ul.check li { padding: 4px 0 4px 1.5em; position: relative; border-bottom: 1px solid var(--line); }
+ul.check li::before { content: ""; position: absolute; left: 3px; top: .82em; width: 7px; height: 7px; border-radius: 50%; background: var(--mute); }
+ul.check li.w::before { background: var(--cinnabar); border-radius: 1px; transform: rotate(45deg); }
+ul.check li.g::before { background: var(--malachite); }
+ul.check li b { color: var(--fg); }
+#suggest { position: absolute; z-index: 30; left: 0; top: calc(100% + 4px); min-width: 280px; background: var(--panel); border: 1px solid var(--line-2); border-radius: 10px; box-shadow: 0 10px 30px rgba(0,0,0,.18); overflow: hidden; }
+#suggest button { display: block; width: 100%; text-align: left; border: 0; background: transparent; padding: 7px 12px; font-size: 13.5px; }
+#suggest button:hover, #suggest button.on { background: var(--panel-2); }
+#suggest button span { color: var(--fg-3); font-size: 12px; margin-left: 8px; }
+
+.gates { margin: 0; padding: 0; list-style: none; }
+.gates li { display: grid; grid-template-columns: 4.6em minmax(0, 1fr); gap: 4px 14px; padding: 10px 0; border-bottom: 1px solid var(--line); font-size: 14px; color: var(--fg-2); }
+.gates li b.h { font-family: var(--serif); font-weight: 900; font-size: 17px; color: var(--fg); letter-spacing: .1em; }
+.gates li b { color: var(--fg); }
+
+#tt { position: fixed; z-index: 40; pointer-events: none; background: var(--tip); color: var(--tip-fg); padding: 8px 11px; border-radius: 8px; font-size: 12.5px; line-height: 1.55; max-width: 300px; box-shadow: 0 6px 22px rgba(0,0,0,.22); }
+#tt .t { font-weight: 700; font-size: 13.5px; }
+#tt .r { display: flex; justify-content: space-between; gap: 14px; }
+#tt .r b { font-weight: 700; }
+#tt .r i { display: inline-block; width: 12px; height: 3px; border-radius: 2px; margin-right: 6px; vertical-align: 3px; }
+#tt .s { opacity: .78; }
+
+footer { max-width: 1180px; margin: 0 auto; padding: 40px max(22px, env(safe-area-inset-right, 0px)) 64px max(22px, env(safe-area-inset-left, 0px)); font-size: 13px; line-height: 1.8; color: var(--fg-3); }
+footer h2 { font-family: var(--serif); font-size: 17px; color: var(--fg); margin: 0 0 8px; }
+footer ul { margin: 0; padding-left: 1.2em; max-width: 64em; }
+footer p { margin: 14px 0 0; }
+
+@media (max-width: 900px) {
+  #hero .in { grid-template-columns: 1fr; align-items: start; }
+  .ch { display: block; padding: 48px 0 44px; }
+  .ch > .txt { position: static; margin-bottom: 28px; }
+  .ch h2 { font-size: 44px; }
+  .ch .claim { font-size: 19px; }
+  #bar { gap: 8px; }
+  #bar .home span { display: none; }
+  #bar .home b { margin-left: 0; }
+  #bar .go.alt { display: none; }
+  .tile .v { font-size: 23px; }
+  .hide-s { display: none; }
+}
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+#hero h1 { letter-spacing: .12em; }
+#hero .kick { font-size: 13px; letter-spacing: .2em; color: var(--gold); font-weight: 700; margin: 0 0 10px; }
+#strip .lab { font-size: 12px; }
+#stripNote { margin: 6px 0 0; font-size: 12.5px; color: var(--fg-3); line-height: 1.7; }
+/* 计算器 */
+.calc { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 14px 30px; align-items: start; }
+.calc .in label { display: grid; grid-template-columns: 8.4em minmax(0, 1fr) 4.2em; align-items: center; gap: 8px; font-size: 13.5px; color: var(--fg-2); margin: 0 0 6px; }
+.calc .in label b { text-align: right; color: var(--fg); }
+.calc .in input[type=range] { width: 100%; }
+.calc .out { border-top: 2px solid var(--fg); padding-top: 8px; }
+.calc .out .row { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; padding: 6px 0; border-bottom: 1px solid var(--line); font-size: 14px; color: var(--fg-2); }
+.calc .out .row b { font-size: 22px; color: var(--fg); font-weight: 700; }
+.calc .out .row.win b { color: var(--malachite); }
+.calc .out p { margin: 8px 0 0; font-size: 13.5px; color: var(--fg-2); line-height: 1.75; }
+.calc .out p b { color: var(--fg); }
+/* 暗礁卡片 */
+.reefs { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 0 30px; }
+.reef { min-width: 0; padding: 14px 0 16px; border-top: 1px solid var(--line-2); }
+.reef h4 { margin: 0; font-family: var(--serif); font-weight: 900; font-size: 18px; letter-spacing: .04em; display: flex; align-items: baseline; gap: 8px; }
+.reef h4 .no { font-family: var(--sans); font-size: 12px; color: var(--cinnabar); font-weight: 700; letter-spacing: 0; }
+.reef p { margin: 6px 0 0; font-size: 13.5px; line-height: 1.75; color: var(--fg-2); display: grid; grid-template-columns: 3.4em minmax(0, 1fr); }
+.reef p b { color: var(--fg); }
+.reef .k { font-size: 12px; font-weight: 700; color: var(--fg-3); letter-spacing: .08em; }
+/* 只在港股的城 */
+.hkcat { margin: 0 0 26px; }
+.hkcat:last-child { margin-bottom: 0; }
+.hkcat h4 { margin: 0; font-family: var(--serif); font-weight: 900; font-size: 20px; letter-spacing: .06em; display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; border-top: 2px solid var(--fg); padding-top: 8px; }
+.hkcat h4 small { font-family: var(--sans); font-weight: 400; font-size: 12.5px; color: var(--fg-3); letter-spacing: 0; }
+.hkcat p.look { margin: 6px 0 8px; font-size: 13.5px; line-height: 1.75; color: var(--fg-2); max-width: 52em; }
+.hkcat p.look b { color: var(--fg); }
+.flag { display: inline-block; font-size: 11px; line-height: 1.5; padding: 0 5px; border-radius: 4px; border: 1px solid var(--line-2); color: var(--fg-2); margin-left: 3px; vertical-align: 1px; white-space: nowrap; }
+.flag.no { border-color: var(--cinnabar); color: var(--cinnabar); }
+.flag.q { border-style: dashed; }
+#ahDetail { margin-top: 18px; border-top: 2px solid var(--fg); padding-top: 12px; }
+#ahDetail h3 { font-family: var(--serif); font-weight: 900; font-size: 24px; letter-spacing: .06em; margin: 0; display: flex; align-items: baseline; flex-wrap: wrap; gap: 6px 12px; }
+#ahDetail h3 small { font-family: var(--sans); font-weight: 400; font-size: 13px; color: var(--fg-3); letter-spacing: 0; }
+#ahDetail .lead { margin: 6px 0 10px; font-size: 14px; color: var(--fg-2); max-width: 52em; }
+#ahDetail .lead b { color: var(--fg); }
+.twin { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px 26px; }
+.pager { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; max-width: 1180px; margin: 0 auto; padding: 32px max(22px, env(safe-area-inset-right, 0px)) 0 max(22px, env(safe-area-inset-left, 0px)); }
+.pager a { display: block; border: 1px solid var(--line-2); border-radius: 12px; padding: 12px 16px; text-decoration: none; color: var(--fg); }
+.pager a:hover { border-color: var(--malachite); }
+.pager .k { font-size: 12px; color: var(--fg-3); }
+.pager b { font-family: var(--serif); font-size: 18px; font-weight: 900; letter-spacing: .08em; }
+.pager span { display: block; font-size: 12.5px; color: var(--fg-2); margin-top: 2px; }
+main .gates li { grid-template-columns: 6.4em minmax(0, 1fr); }
+.hkcat table { table-layout: fixed; }
+.hkcat th:first-child { width: 36%; }
+@media (max-width: 900px) {
+  .calc { grid-template-columns: 1fr; }
+  .hkcat th:first-child { width: 46%; }
+}
+</style>
+</head>
+<body>
+<header id="bar">
+  <a class="home" href="index.html"><span>A股疆域图</span><b>港股通</b></a>
+  <nav aria-label="章节">
+    <a href="#duian">对岸</a><a href="#jiacha">价差</a><a href="#luodai">落袋</a><a href="#anjiao">暗礁</a><a href="#xuancheng">选城</a>
+  </nav>
+  <a class="go alt" href="zhencha.html">财报侦探</a>
+  <a class="go alt" href="faxian.html">好公司</a>
+  <a class="go" href="index.html">打开地图</a>
+</header>
+
+<section id="hero" aria-label="两百多家A+H公司的A股相对H股的溢价">
+  <div class="in">
+    <div>
+      <p class="kick">精通港股 · 从港股通里挑公司</p>
+      <h1>港股通</h1>
+      <p class="lede">对岸有一片A股地图上没有的版图：腾讯、阿里、美团、小米都只在那里上市。同一家公司在两地的价格也不一样。这一页讲怎么在港股通里挑公司：<b>先认清地形，再比价格、算到手、避暗礁，最后用A股的年报给两地上市的公司做一次体检</b>。</p>
+      <p class="how">这里的“通”是精通的通。港股通本身是内地投资者买卖港股的渠道，只有纳入名单的港股才能通过它买到。价差和港股数字来自 <span id="hDate"></span> 收盘的行情快照，年报来自本项目的A股数据；文字里的判断由 AI 写成，不构成投资建议。</p>
+    </div>
+    <div>
+      <div class="plot" id="strip"></div>
+      <p id="stripNote"></p>
+    </div>
+  </div>
+</section>
+
+<main>
+  <section class="ch" id="duian">
+    <div class="txt">
+      <div class="step">第一步 · 认地形</div>
+      <h2>对岸</h2>
+      <p class="claim">A股地图上，缺了大半个互联网。</p>
+      <p id="t1"></p>
+      <p class="note">“只在港股”的公司，有的在内地注册、发行H股；更多的是在开曼群岛等地注册的内地民营企业（常见的协议控制即VIE结构），以及香港本地公司和外资公司。A股和港股两边都上市的，叫A+H公司。</p>
+    </div>
+    <div class="viz">
+      <div class="fig">
+        <h3>如果把只在港股上市的大公司画进地图</h3>
+        <p class="sub" id="landSub"></p>
+        <div class="legend"><span><i class="box" style="background:var(--mute)"></i>A股地图上这个国今天的市值</span><span><i class="box" style="background:var(--c3)"></i>只在港股上市的大公司（本页收录的）</span></div>
+        <div class="plot" id="pLand"></div>
+        <p class="say" id="sLand"></p>
+      </div>
+      <div class="fig">
+        <h3>南下的钱</h3>
+        <p class="sub">港股通开通于2014年11月（沪港通），2016年12月扩展到深港通。</p>
+        <div class="tiles num" id="flowTiles"></div>
+        <p class="say">从2015年起，南向资金每年都是净买入：2015年约1,272亿港元，2017年约3,399亿，2020年约6,721亿，2024年约8,079亿，2025年约1.40万亿港元，创下纪录。内地资金在港股的话语权越来越大，这也是AH价差在2025年明显收窄的原因之一。</p>
+      </div>
+      <div class="fig">
+        <h3>港股通能买什么</h3>
+        <ul class="gates">
+          <li><b class="h">大中型</b><span>恒生综合大型股指数、中型股指数的成份股，自动纳入。</span></li>
+          <li><b class="h">小型股</b><span>恒生综合小型股指数成份股里，前12个月平均月市值不低于 <b>50亿港元</b> 的。</span></li>
+          <li><b class="h">A+H</b><span>两地上市公司的H股（新股要等价格稳定期结束、A股上市满10个交易日）。</span></li>
+          <li><b class="h">同股不同权</b><span>名字带“W”的公司，第一次纳入还要上市满6个月加20个交易日，日均市值不低于 <b>200亿港元</b>、期间总成交额不低于 <b>60亿港元</b>。</span></li>
+          <li><b class="h">外国公司</b><span>在港主要上市的外国公司，2023年3月起按同样标准纳入。</span></li>
+          <li><b class="h">不在通里</b><span>第二上市的公司（名字带“S”，如京东集团-SW）、以港币以外货币交易的股票、虚拟资产公司等。网易在2026年6月改为双重主要上市后才被纳入。</span></li>
+          <li><b class="h">门槛</b><span>个人投资者证券账户和资金账户合计不低于 <b>50万元</b>；只在两地都开市的日子交易。</span></li>
+        </ul>
+        <p class="say" style="font-size:13px;color:var(--fg-3)">名单每季度随恒生指数调整，以上海、深圳证券交易所公布的为准。</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="ch" id="jiacha">
+    <div class="txt">
+      <div class="step">第二步 · 比价格</div>
+      <h2>价差</h2>
+      <p class="claim">H股的折扣，大半是给“小、冷、差”打的。</p>
+      <p id="t2"></p>
+      <p class="note">溢价 = A股价 ÷（H股价 × 港元兑人民币）− 1。同一家公司的A股和H股，分红、投票权都一样，价格却长期不同：两地资金不能自由来回套利；港股以国际机构为主，用全球的估值标准；港股成交更冷清，流动性要打折；港股通的股息要多扣税；港股可以做空。恒生AH股溢价指数在2024年2月一度超过160点（A股平均比H股贵六成），2026年上半年最低降到113.6点。</p>
+    </div>
+    <div class="viz">
+      <div class="fig">
+        <h3>公司越大，A股比H股贵得越少</h3>
+        <p class="sub" id="ahSub"></p>
+        <div class="legend" id="ahLegend"></div>
+        <div class="plot" id="pAh"></div>
+        <p class="say" id="sAh"></p>
+      </div>
+      <div class="fig">
+        <h3>按规模和回报率分组</h3>
+        <p class="sub">每组A+H公司溢价的中位数。规模用A股地图上 <span id="capMonth"></span> 末的总市值；回报率是2016–2025年平均净资产收益率（不满八年的公司不计）。</p>
+        <div class="twin"><div><h5 style="margin:0 0 4px;font-size:13px">按规模</h5><div class="plot" id="pAhCap"></div></div><div><h5 style="margin:0 0 4px;font-size:13px">按十年回报率</h5><div class="plot" id="pAhRoe"></div></div></div>
+        <p class="say" id="sAhG"></p>
+        <details class="more"><summary>各国A+H公司的溢价</summary><div class="scroll scrollx"><table class="dt num" id="tAhSec"></table></div></details>
+      </div>
+    </div>
+  </section>
+
+  <section class="ch" id="luodai">
+    <div class="txt">
+      <div class="step">第三步 · 算到手</div>
+      <h2>落袋</h2>
+      <p class="claim">港股的股息率，要先打个八折再看。</p>
+      <p>通过港股通买港股，个人投资者拿到的股息要被代扣 <b>20%</b> 的个人所得税：H股由公司代扣，其他港股由中国结算代扣。在境外注册、内地管理的红筹股（如中国移动、中国海洋石油），公司派息前还会先预扣10%企业所得税，合计约 <b>28%</b>。而A股持有一年以上，分红免税。</p>
+      <p>所以对一个长期收息的人，同一家公司的H股要比A股便宜 <b>25%</b> 以上（红筹约39%以上），税后股息才划算。买卖时，港股双边各收0.1%印花税，A股只在卖出时收0.05%；港股以港元计价，收益最后要换回人民币，港元挂钩美元，人民币对美元的涨跌会直接算进你的回报。</p>
+      <p class="note">企业投资者通过港股通连续持有H股满12个月，股息可免企业所得税；上面只讨论个人投资者。红筹公司若已代扣10%企业所得税，个人可向主管税务机关申请抵免，实际执行中多在20%–28%之间。</p>
+    </div>
+    <div class="viz">
+      <div class="fig">
+        <h3>A股还是H股：到手的股息哪个多</h3>
+        <p class="sub">拖动滑块，或者从下面选一家公司代入快照里的数字。股息相同，价格不同，股息率就不同。</p>
+        <div class="quick chips" id="calcPick"></div>
+        <div class="calc">
+          <div class="in">
+            <label><span>H股股息率</span><input type="range" id="cDy" min="1" max="10" step="0.1" value="6"><b class="num" id="vDy"></b></label>
+            <label><span>A股比H股贵</span><input type="range" id="cP" min="-30" max="150" step="1" value="30"><b class="num" id="vP"></b></label>
+            <label><span>H股红利税</span><span class="seg" id="cTax"><button data-t="20" aria-pressed="true">20%</button><button data-t="28">28%（红筹）</button></span><span></span></label>
+            <label><span>A股持有</span><span class="seg" id="cHold"><button data-t="0" aria-pressed="true">一年以上</button><button data-t="10">一月到一年</button></span><span></span></label>
+          </div>
+          <div class="out" id="calcOut"></div>
+        </div>
+      </div>
+      <div class="fig">
+        <h3>两百多对A+H公司，谁的H股更适合收息</h3>
+        <p class="sub" id="yldSub"></p>
+        <div class="legend"><span><i style="background:var(--c1);height:3px"></i>H股税后股息 ÷ A股股息（税率20%）</span><span><i style="background:var(--c2);height:3px"></i>红筹（税率28%）</span><span><i class="dot" style="background:var(--c4)"></i>快照里有股息率的公司</span></div>
+        <div class="plot" id="pYld"></div>
+        <p class="say" id="sYld"></p>
+      </div>
+      <div class="fig">
+        <h3>扣税以后的股息率</h3>
+        <p class="sub">快照里有股息率的港股（含A+H公司的H股），按通过港股通持有的个人投资者扣税后的股息率排序。股息率按最近一个财年的派息计算，派息会变，不是承诺。</p>
+        <div class="scroll scrollx" style="max-height:420px;overflow:auto"><table class="dt num" id="tYld"></table></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="ch" id="anjiao">
+    <div class="txt">
+      <div class="step">第四步 · 避暗礁</div>
+      <h2>暗礁</h2>
+      <p class="claim">港股没有涨跌停，也没有人替你兜底。</p>
+      <p>港股是一个以机构为主、规则更“自由”的市场：上市容易，退市也快；可以做空，可以大比例供股、合股；一天之内股价没有上下限。港股通名单已经替你挡掉了大部分最小、最差的公司，但名单里依然有暗礁。</p>
+      <p class="note">中国恒大2017年10月市值一度约4,000亿港元，2024年1月29日被法院颁令清盘、停牌时股价0.163港元，停牌满18个月后于2025年8月25日被取消上市地位。</p>
+    </div>
+    <div class="viz">
+      <div class="fig">
+        <h3>十处暗礁</h3>
+        <div class="reefs" id="reefs"></div>
+      </div>
+      <div class="fig">
+        <h3>看起来最便宜的H股</h3>
+        <p class="sub" id="cheapSub"></p>
+        <div class="scroll scrollx"><table class="dt num" id="tCheap"></table></div>
+        <p class="say" id="sCheap"></p>
+      </div>
+    </div>
+  </section>
+
+  <section class="ch" id="xuancheng">
+    <div class="txt">
+      <div class="step">第五步 · 挑公司</div>
+      <h2>选城</h2>
+      <p class="claim">还是同一把尺子，只是多量三样：价差、税、流动性。</p>
+      <p id="t5"></p>
+      <p class="note">A+H公司的年报用的是A股数据（内地会计准则），和H股年报（香港会计准则）个别数字可能不同。H股市盈率 = A股市盈率 ÷（1 + 溢价）；A股市盈率用的是 <span id="peMonth"></span> 末的市值和2025年归母净利润，没有用季报。</p>
+    </div>
+    <div class="viz">
+      <div class="fig">
+        <h3>给两地上市的公司做体检</h3>
+        <p class="sub">条件可以随意改。点一行，下面出现这家公司的两地对照，可以跳到地图、财报小传和财报侦探。</p>
+        <div class="filters">
+          <label><span class="k">十年平均回报率 ≥</span><input type="range" id="fRoe" min="0" max="25" step="1" value="10"><b class="num" id="vRoe"></b></label>
+          <label><span class="k">H股市盈率 ≤</span><input type="range" id="fPe" min="4" max="60" step="1" value="20"><b class="num" id="vPe"></b></label>
+          <label><span class="k">A比H贵至少</span><input type="range" id="fP" min="-30" max="100" step="5" value="0"><b class="num" id="vP2"></b></label>
+        </div>
+        <div class="ctl"><span>范围</span><select id="selScope" aria-label="范围"></select><span class="chips" style="margin:0" id="ahChips"></span></div>
+        <p id="resSum"></p>
+        <div class="scrollx"><table class="dt num" id="tAh"></table></div>
+        <p style="margin:10px 0 0"><button class="chip" id="moreAh" hidden></button></p>
+        <div id="ahDetail" hidden></div>
+      </div>
+      <div class="fig">
+        <h3>只在港股的城</h3>
+        <p class="sub" id="hkSub"></p>
+        <div id="hkCats"></div>
+      </div>
+      <div class="fig">
+        <h3>过海之前，问七个问题</h3>
+        <ul class="gates">
+          <li><b class="h">能买吗</b><span>在不在港股通名单里？名字带“S”的第二上市公司、还在价格稳定期的新股都买不了。</span></li>
+          <li><b class="h">好生意吗</b><span>十年回报率、利润的现金含量，和挑A股一样。A+H公司直接看A股年报（<a href="faxian.html">发现好公司</a>、<a href="zhencha.html">财报侦探</a>）；只在港股的公司要看港股年报。</span></li>
+          <li><b class="h">便宜多少</b><span>同一家公司，A比H贵多少？大而热门的公司贵得少，小而冷的公司贵得多——后者的“便宜”多半有原因。</span></li>
+          <li><b class="h">到手多少</b><span>股息先扣20%（红筹可能28%），双边各0.1%印花税；A股持有一年以上分红免税。</span></li>
+          <li><b class="h">进出容易吗</b><span>每天成交多少？买卖价差大的小票，进得去、出不来。</span></li>
+          <li><b class="h">结构稳吗</b><span>同股不同权、协议控制（VIE）、大股东高比例质押、频繁供股配股，都要多看一眼。</span></li>
+          <li><b class="h">汇率呢</b><span>港元挂钩美元，你的收益最后要换回人民币。</span></li>
+        </ul>
+      </div>
+    </div>
+  </section>
+</main>
+
+<nav class="pager" aria-label="其他页面">
+  <a href="index.html"><div class="k">地图</div><b>A股疆域图</b><span>二十六年的行业版图</span></a>
+  <a href="guanchao.html"><div class="k">规律</div><b>观潮</b><span>从地图里读出的六条规律</span></a>
+  <a href="faxian.html"><div class="k">把注意力放在哪里</div><b>发现好公司</b><span>学科、产业、公司、价格筛四遍</span></a>
+  <a href="zhencha.html"><div class="k">先排除谁</div><b>财报侦探</b><span>财务指标与财报里的线索</span></a>
+</nav>
+
+<footer>
+  <h2>口径与边界</h2>
+  <ul>
+    <li>港股数字是 <span id="fDate"></span> 收盘后的快照（经济通网站的“AH股表现”“热炒概念股”“港股通”等页面，报价延迟至少15分钟），港元兑人民币按快照页给出的0.8502计算。快照只收录了两百多对A+H公司和四十多家只在港股上市的大公司，不是港股通的全部名单；市值对A+H公司只算H股部分，对少数香港本地公司是流通市值。数字会过时，用之前请以最新行情为准。</li>
+    <li>A+H公司的年报、净资产收益率、利润含金量来自本项目的A股数据（2010–2025年报）；A股市值是 <span id="fCap"></span> 末的数字，和港股快照差两周左右。</li>
+    <li>“港股通”一栏里，“以名单为准”表示本页没有核实它是否已被纳入。港股通标的范围、税率等规则以沪深交易所、中国结算和税务机关的最新规定为准。</li>
+    <li>文字说明、分类和“该看什么”由 AI（Claude）编写，会错，也会过时；南向资金、AH溢价指数等数字来自公开报道。</li>
+  </ul>
+  <p>本页不构成投资建议。 <a href="index.html">回到地图</a> · <a href="faxian.html">发现好公司</a> · <a href="zhencha.html">财报侦探</a> · <a href="https://github.com/wanglu2016/agu-jiangyu" target="_blank" rel="noopener">源代码、数据来源与离线版</a></p>
+</footer>
+<div id="tt" hidden></div>
+
+<script src="assets/lib/d3.min.js"></script>
+<script src="assets/data.js"></script>
+<script src="assets/quality.js"></script>
+<script src="assets/hk.js"></script>
+<script src="assets/ganggu.js"></script>
+</body>
+</html>

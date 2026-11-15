@@ -1,0 +1,529 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>财报侦探 · A股疆域图</title>
+<meta name="description" content="财务指标与财报侦探：把净资产收益率、利润含金量、融资与分红、商誉一项项拆开，用2010–2025年的年报看这些线索后来应验了多少，再学会去附注里找证据。数字由页面实时计算。">
+<meta property="og:title" content="财报侦探 · 平庸和有问题的公司，大多早在财报里留下了线索">
+<meta property="og:description" content="利润没有变成现金、钱总是不够用、资产里有说不清的东西。五年里同时出现两个疑点的公司，后来多半出现过亏损。">
+<meta property="og:image" content="assets/preview-zhencha.jpg">
+<meta name="theme-color" content="#dde6e2">
+<link rel="icon" href="assets/icon.svg" type="image/svg+xml">
+<style>html,body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
+<link rel="stylesheet" href="assets/fonts/fonts.css">
+<style>
+/* 财报侦探：一册“验城记”。同一套矿物颜料；朱砂是疑点，孔雀石是清白。 */
+:root {
+  --sea: #dde6e2; --water: #b9cfcd; --water-2: #a5c1c0; --water-line: rgba(38, 84, 86, 0.30);
+  --panel: #f6f4ee; --panel-2: #ece9e0; --line: rgba(40, 52, 48, 0.13); --line-2: rgba(40, 52, 48, 0.28);
+  --fg: #1c2522; --fg-2: #4b5853; --fg-3: #737f79;
+  --gold: #8f6418; --cinnabar: #b8432b; --malachite: #2f7a63;
+  --c1: #1f8466; --c2: #b8432b; --c3: #2f63a8; --c4: #a8791f; --mute: #a3aca6;
+  --o1: #7eb1a0; --o2: #699b8b; --o3: #548676; --o4: #3f7162; --o5: #2b5d4f; --o6: #164a3c; --o7: #00372a;
+  --band: rgba(143, 100, 24, 0.14);
+  --pos: 47, 122, 99; --neg: 184, 67, 43;
+  --tip: rgba(28, 37, 34, 0.95); --tip-fg: #f3efe4;
+  --serif: "Noto Serif SC", "Source Han Serif SC", "Songti SC", "STSong", serif;
+  --sans: "Noto Sans SC", "Source Han Sans SC", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --sea: #0d1a20; --water: #17333b; --water-2: #1d3f48; --water-line: rgba(150, 205, 200, 0.22);
+    --panel: #111e24; --panel-2: #172830; --line: rgba(210, 225, 215, 0.11); --line-2: rgba(210, 225, 215, 0.26);
+    --fg: #ebe6d6; --fg-2: #b6bdb4; --fg-3: #8a9690;
+    --gold: #d8b66c; --cinnabar: #e2694c; --malachite: #79b9a0;
+    --c1: #3fa682; --c2: #dd6245; --c3: #5c90d8; --c4: #b18a2c; --mute: #5d6c68;
+    --o1: #19604e; --o2: #317461; --o3: #478975; --o4: #5c9e8a; --o5: #72b49f; --o6: #88cbb5; --o7: #9ee2cb;
+    --band: rgba(216, 182, 108, 0.14);
+    --pos: 121, 185, 160; --neg: 226, 105, 76;
+    --tip: rgba(236, 231, 216, 0.97); --tip-fg: #14211f; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --sea: #0d1a20; --water: #17333b; --water-2: #1d3f48; --water-line: rgba(150, 205, 200, 0.22);
+  --panel: #111e24; --panel-2: #172830; --line: rgba(210, 225, 215, 0.11); --line-2: rgba(210, 225, 215, 0.26);
+  --fg: #ebe6d6; --fg-2: #b6bdb4; --fg-3: #8a9690;
+  --gold: #d8b66c; --cinnabar: #e2694c; --malachite: #79b9a0;
+  --c1: #3fa682; --c2: #dd6245; --c3: #5c90d8; --c4: #b18a2c; --mute: #5d6c68;
+  --o1: #19604e; --o2: #317461; --o3: #478975; --o4: #5c9e8a; --o5: #72b49f; --o6: #88cbb5; --o7: #9ee2cb;
+  --band: rgba(216, 182, 108, 0.14);
+  --pos: 121, 185, 160; --neg: 226, 105, 76;
+  --tip: rgba(236, 231, 216, 0.97); --tip-fg: #14211f; color-scheme: dark;
+}
+html { scroll-behavior: smooth; scroll-padding-top: 64px; }
+body { background: var(--panel); color: var(--fg); font-family: var(--sans); font-size: 15px; line-height: 1.85; -webkit-font-smoothing: antialiased; }
+a { color: var(--malachite); text-underline-offset: 3px; }
+button, input, select { font: inherit; color: inherit; }
+button { cursor: pointer; }
+:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+.num { font-variant-numeric: tabular-nums; }
+
+/* 顶栏 */
+#bar { position: sticky; top: 0; z-index: 20; display: flex; align-items: center; gap: 14px; height: 52px; padding: 0 max(18px, env(safe-area-inset-right, 0px)) 0 max(18px, env(safe-area-inset-left, 0px)); background: var(--panel); border-bottom: 1px solid var(--line); }
+#bar .home { font-family: var(--serif); font-weight: 600; letter-spacing: .18em; font-size: 14px; color: var(--fg-2); text-decoration: none; white-space: nowrap; }
+#bar .home b { color: var(--fg); font-weight: 900; margin-left: .6em; letter-spacing: .1em; }
+#bar nav { display: flex; gap: 2px; margin-left: auto; overflow-x: auto; scrollbar-width: none; }
+#bar nav::-webkit-scrollbar { display: none; }
+#bar nav a { padding: 6px 10px; font-size: 14px; color: var(--fg-2); text-decoration: none; white-space: nowrap; border-bottom: 2px solid transparent; }
+#bar nav a:hover { color: var(--fg); }
+#bar nav a.on { color: var(--fg); border-bottom-color: var(--gold); font-weight: 700; }
+#bar .go { flex: none; padding: 6px 14px; border-radius: 999px; border: 1px solid var(--malachite); color: var(--malachite); text-decoration: none; font-size: 13.5px; white-space: nowrap; }
+#bar .go:hover { background: var(--malachite); color: var(--panel); }
+#bar .go.alt { border-color: transparent; padding: 6px 4px; font-weight: 700; }
+#bar .go.alt:hover { background: transparent; color: var(--malachite); text-decoration: underline; }
+
+/* 页首：筛出来的台地 */
+#hero { background: var(--sea); border-bottom: 1px solid var(--line-2); }
+#hero .in { max-width: 1180px; margin: 0 auto; display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 6fr); gap: 24px 64px; align-items: end; padding: clamp(32px, 7vh, 72px) max(22px, env(safe-area-inset-right, 0px)) clamp(30px, 6vh, 56px) max(22px, env(safe-area-inset-left, 0px)); }
+#hero h1 { margin: 0; font-family: var(--serif); font-weight: 900; font-size: clamp(44px, 6.6vw, 84px); line-height: 1.08; letter-spacing: .08em; }
+#hero .lede { margin: 20px 0 0; max-width: 30em; font-size: clamp(15px, 1.5vw, 17px); line-height: 1.9; color: var(--fg-2); }
+#hero .lede b { color: var(--fg); }
+#hero .how { margin: 16px 0 0; font-size: 13px; line-height: 1.75; color: var(--fg-3); max-width: 36em; }
+.sieve { margin: 0; padding: 0; list-style: none; }
+.sieve li { display: grid; grid-template-columns: 6.6em minmax(0, 1fr); gap: 0 14px; align-items: center; padding: 9px 0; border-top: 1px solid var(--water-line); }
+.sieve li:first-child { border-top: 0; }
+.sieve .n { font-family: var(--serif); font-weight: 900; font-size: clamp(24px, 2.8vw, 34px); line-height: 1.1; text-align: right; white-space: nowrap; }
+.sieve .n small { font-family: var(--sans); font-weight: 400; font-size: 12px; color: var(--fg-3); margin-left: 2px; }
+.sieve .bar { height: 10px; border-radius: 0 4px 4px 0; min-width: 4px; }
+.sieve .k { font-size: 13.5px; line-height: 1.55; color: var(--fg-2); margin-top: 5px; }
+.sieve .k b { color: var(--fg); font-weight: 700; }
+.sieve a { color: inherit; text-decoration: none; display: contents; }
+#sieveNote { margin: 10px 0 0; font-size: 12.5px; color: var(--fg-3); }
+
+/* 章节 */
+main { max-width: 1180px; margin: 0 auto; padding: 0 max(22px, env(safe-area-inset-right, 0px)) 0 max(22px, env(safe-area-inset-left, 0px)); }
+.ch { display: grid; grid-template-columns: 300px minmax(0, 1fr); gap: 0 56px; padding: 72px 0 64px; border-bottom: 1px solid var(--line-2); }
+.ch > .txt { position: sticky; top: 76px; align-self: start; }
+.ch .step { font-size: 12.5px; letter-spacing: .16em; color: var(--gold); font-weight: 700; margin-bottom: 6px; }
+.ch h2 { margin: 0; font-family: var(--serif); font-weight: 900; font-size: 56px; line-height: 1.05; letter-spacing: .12em; }
+.ch .claim { margin: 14px 0 0; font-family: var(--serif); font-weight: 600; font-size: 21px; line-height: 1.55; text-wrap: balance; }
+.ch .txt p { margin: 14px 0 0; color: var(--fg-2); }
+.ch .txt p b { color: var(--fg); font-weight: 700; }
+.ch .txt .note { font-size: 13px; line-height: 1.75; color: var(--fg-3); }
+.fig { margin: 0 0 48px; }
+.fig:last-child { margin-bottom: 0; }
+.fig h3 { margin: 0; font-family: var(--serif); font-weight: 600; font-size: 17px; line-height: 1.5; }
+.fig .sub { margin: 2px 0 10px; font-size: 13px; color: var(--fg-3); line-height: 1.6; max-width: 52em; }
+.plot { position: relative; }
+.plot svg { display: block; touch-action: pan-y; overflow: visible; }
+.axis text, .tick { font-size: 11.5px; fill: var(--fg-3); font-family: var(--sans); }
+.grid { stroke: var(--line); stroke-width: 1; shape-rendering: crispEdges; }
+.zero { stroke: var(--line-2); stroke-width: 1; shape-rendering: crispEdges; }
+.lab { font-size: 12.5px; fill: var(--fg); font-family: var(--sans); }
+.lab.dim { fill: var(--fg-2); font-size: 12px; }
+.lab.b { font-weight: 700; }
+.hp { paint-order: stroke; stroke: var(--panel); stroke-width: 4px; stroke-linejoin: round; }
+.quad { font-size: 12px; fill: var(--fg-3); font-family: var(--serif); font-weight: 600; letter-spacing: .1em; }
+
+/* 控件、图例、数字 */
+.ctl { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin: 0 0 12px; font-size: 13.5px; color: var(--fg-2); }
+.seg { display: inline-flex; border: 1px solid var(--line-2); border-radius: 8px; overflow: hidden; }
+.seg button { border: 0; background: transparent; padding: 5px 12px; font-size: 13.5px; color: var(--fg-2); }
+.seg button + button { border-left: 1px solid var(--line); }
+.seg button[aria-pressed="true"] { background: var(--fg); color: var(--panel); }
+.chip { border: 1px solid var(--line-2); background: transparent; border-radius: 999px; padding: 3px 11px; font-size: 13px; color: var(--fg-2); }
+.chip[aria-pressed="true"] { background: var(--fg); color: var(--panel); border-color: var(--fg); }
+input[type=range] { accent-color: var(--malachite); width: 150px; height: 28px; }
+select, input[type=search] { border: 1px solid var(--line-2); background: var(--panel); border-radius: 8px; padding: 5px 10px; font-size: 13.5px; }
+.legend { display: flex; flex-wrap: wrap; gap: 4px 16px; margin: 0 0 8px; font-size: 12.5px; color: var(--fg-2); }
+.legend i { display: inline-block; width: 14px; height: 3px; border-radius: 2px; margin-right: 6px; vertical-align: 3px; }
+.legend i.box { width: 11px; height: 11px; border-radius: 2px; vertical-align: -1px; }
+.legend i.dot { width: 9px; height: 9px; border-radius: 50%; vertical-align: 0; }
+.legend i.ring { width: 8px; height: 8px; border-radius: 50%; vertical-align: 0; background: transparent; border: 1.5px solid var(--fg-2); }
+.tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 0; margin: 0 0 18px; border-top: 1px solid var(--line-2); border-bottom: 1px solid var(--line); }
+.tile { padding: 12px 14px 12px 0; }
+.tile + .tile { padding-left: 14px; border-left: 1px solid var(--line); }
+.tile .v { font-size: 27px; font-weight: 700; line-height: 1.2; letter-spacing: -0.01em; }
+.tile .k { font-size: 12.5px; color: var(--fg-3); line-height: 1.5; margin-top: 2px; }
+table.dt { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+table.dt th { text-align: right; font-weight: 500; color: var(--fg-3); font-size: 12.5px; padding: 6px 8px; border-bottom: 1px solid var(--line-2); white-space: nowrap; }
+table.dt td { text-align: right; padding: 6px 8px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+table.dt th:first-child, table.dt td:first-child { text-align: left; padding-left: 0; }
+table.dt th.l, table.dt td.l { text-align: left; }
+table.dt td i.sw { display: inline-block; width: 9px; height: 9px; border-radius: 3px; margin-right: 6px; }
+table.dt th button { border: 0; background: transparent; padding: 0; font-size: inherit; color: inherit; font-weight: inherit; }
+table.dt th button:hover { color: var(--fg); }
+table.dt th[aria-sort] button { color: var(--fg); font-weight: 700; }
+table.dt th[aria-sort="descending"] button::after { content: " ↓"; }
+table.dt th[aria-sort="ascending"] button::after { content: " ↑"; }
+table.dt tbody tr.pick { cursor: pointer; }
+table.dt tbody tr.pick:hover td { background: var(--panel-2); }
+table.dt tbody tr.sel td { background: var(--band); }
+details.more { margin-top: 10px; font-size: 13px; }
+details.more summary { cursor: pointer; color: var(--malachite); width: fit-content; }
+details.more .scroll { max-height: 420px; overflow: auto; margin-top: 8px; border-top: 1px solid var(--line); }
+.scrollx { overflow-x: auto; }
+.say { margin: 12px 0 0; font-size: 14px; color: var(--fg-2); max-width: 46em; }
+.say b { color: var(--fg); }
+.pill { display: inline-block; font-size: 11.5px; font-weight: 400; padding: 1px 8px; border-radius: 999px; border: 1px solid var(--line-2); color: var(--fg-2); white-space: nowrap; }
+.pill.warn { border-color: var(--cinnabar); color: var(--cinnabar); }
+.pill.dash { border-style: dashed; }
+
+/* 寻城 */
+.filters { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 10px 26px; margin: 0 0 12px; }
+.filters label { display: flex; align-items: center; gap: 10px; font-size: 13.5px; color: var(--fg-2); }
+.filters label span.k { flex: none; min-width: 7.6em; }
+.filters label b { min-width: 3em; text-align: right; color: var(--fg); }
+.filters input[type=range] { flex: 1; min-width: 80px; width: auto; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px 8px; margin: 0 0 14px; }
+#resSum { margin: 0 0 10px; font-size: 14px; color: var(--fg-2); }
+#resSum b { color: var(--fg); }
+td .mini { display: inline-block; vertical-align: middle; }
+.co-n { font-weight: 700; }
+.co-c { font-size: 11.5px; color: var(--fg-3); margin-left: 6px; }
+#detail { margin-top: 26px; border-top: 2px solid var(--fg); padding-top: 14px; }
+#detail h3 { font-family: var(--serif); font-weight: 900; font-size: 26px; letter-spacing: .06em; margin: 0; display: flex; align-items: baseline; flex-wrap: wrap; gap: 6px 12px; }
+#detail h3 small { font-family: var(--sans); font-weight: 400; font-size: 13px; color: var(--fg-3); letter-spacing: 0; }
+#detail .lead { margin: 6px 0 12px; font-size: 14px; color: var(--fg-2); max-width: 50em; }
+#detail .lead b { color: var(--fg); }
+.trio { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 18px 26px; margin: 4px 0 6px; }
+.trio h5 { margin: 0 0 2px; font-size: 13px; font-weight: 700; }
+.trio .sub { margin: 0 0 4px; font-size: 12px; color: var(--fg-3); }
+ul.check { margin: 10px 0 0; padding: 0; list-style: none; font-size: 13.5px; line-height: 1.7; color: var(--fg-2); }
+ul.check li { padding: 4px 0 4px 1.5em; position: relative; border-bottom: 1px solid var(--line); }
+ul.check li::before { content: ""; position: absolute; left: 3px; top: .82em; width: 7px; height: 7px; border-radius: 50%; background: var(--mute); }
+ul.check li.w::before { background: var(--cinnabar); border-radius: 1px; transform: rotate(45deg); }
+ul.check li.g::before { background: var(--malachite); }
+ul.check li b { color: var(--fg); }
+#suggest { position: absolute; z-index: 30; left: 0; top: calc(100% + 4px); min-width: 280px; background: var(--panel); border: 1px solid var(--line-2); border-radius: 10px; box-shadow: 0 10px 30px rgba(0,0,0,.18); overflow: hidden; }
+#suggest button { display: block; width: 100%; text-align: left; border: 0; background: transparent; padding: 7px 12px; font-size: 13.5px; }
+#suggest button:hover, #suggest button.on { background: var(--panel-2); }
+#suggest button span { color: var(--fg-3); font-size: 12px; margin-left: 8px; }
+
+.gates { margin: 0; padding: 0; list-style: none; }
+.gates li { display: grid; grid-template-columns: 4.6em minmax(0, 1fr); gap: 4px 14px; padding: 10px 0; border-bottom: 1px solid var(--line); font-size: 14px; color: var(--fg-2); }
+.gates li b.h { font-family: var(--serif); font-weight: 900; font-size: 17px; color: var(--fg); letter-spacing: .1em; }
+.gates li b { color: var(--fg); }
+
+#tt { position: fixed; z-index: 40; pointer-events: none; background: var(--tip); color: var(--tip-fg); padding: 8px 11px; border-radius: 8px; font-size: 12.5px; line-height: 1.55; max-width: 300px; box-shadow: 0 6px 22px rgba(0,0,0,.22); }
+#tt .t { font-weight: 700; font-size: 13.5px; }
+#tt .r { display: flex; justify-content: space-between; gap: 14px; }
+#tt .r b { font-weight: 700; }
+#tt .r i { display: inline-block; width: 12px; height: 3px; border-radius: 2px; margin-right: 6px; vertical-align: 3px; }
+#tt .s { opacity: .78; }
+
+footer { max-width: 1180px; margin: 0 auto; padding: 40px max(22px, env(safe-area-inset-right, 0px)) 64px max(22px, env(safe-area-inset-left, 0px)); font-size: 13px; line-height: 1.8; color: var(--fg-3); }
+footer h2 { font-family: var(--serif); font-size: 17px; color: var(--fg); margin: 0 0 8px; }
+footer ul { margin: 0; padding-left: 1.2em; max-width: 64em; }
+footer p { margin: 14px 0 0; }
+
+@media (max-width: 900px) {
+  #hero .in { grid-template-columns: 1fr; align-items: start; }
+  .ch { display: block; padding: 48px 0 44px; }
+  .ch > .txt { position: static; margin-bottom: 28px; }
+  .ch h2 { font-size: 44px; }
+  .ch .claim { font-size: 19px; }
+  #bar { gap: 8px; }
+  #bar .home span { display: none; }
+  #bar .home b { margin-left: 0; }
+  #bar .go.alt { display: none; }
+  .tile .v { font-size: 23px; }
+  .hide-s { display: none; }
+}
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+/* 页首：疑点阶梯 */
+.sieve .n.red { color: var(--cinnabar); }
+.sieve .k .r { white-space: nowrap; }
+/* 杜邦公式 */
+.formula { display: grid; grid-template-columns: 1.2em auto minmax(0, 1fr); gap: 3px 6px; align-items: baseline; margin: 16px 0 0; padding: 10px 0; border-top: 1px solid var(--line-2); border-bottom: 1px solid var(--line); }
+.formula span.op { color: var(--gold); font-weight: 700; font-size: 16px; }
+.formula b { font-family: var(--serif); font-weight: 900; font-size: 15px; white-space: nowrap; }
+.formula em { font-style: normal; font-size: 12px; color: var(--fg-3); line-height: 1.5; }
+/* 卷宗 */
+.cases { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 30px 34px; }
+.case { min-width: 0; border-top: 2px solid var(--fg); padding-top: 10px; }
+.case h4 { margin: 0; font-family: var(--serif); font-weight: 900; font-size: 21px; letter-spacing: .06em; display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 10px; }
+.case h4 small { font-family: var(--sans); font-weight: 400; font-size: 12.5px; color: var(--fg-3); letter-spacing: 0; }
+.case .tag { font-size: 13px; color: var(--cinnabar); font-weight: 700; margin-top: 2px; }
+.case .mini { margin: 8px 0 2px; }
+.case .mini svg { display: block; overflow: visible; }
+.case .cap { font-size: 11.5px; color: var(--fg-3); line-height: 1.5; }
+.case dl { margin: 8px 0 0; font-size: 13.5px; line-height: 1.75; color: var(--fg-2); }
+.case dt { font-weight: 700; color: var(--fg); font-size: 12.5px; letter-spacing: .1em; margin-top: 8px; }
+.case dd { margin: 0; }
+.case dd b { color: var(--fg); }
+.case.gone { border-top-style: dashed; }
+/* 线索卡片 */
+.clues { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 0 30px; }
+.clue { min-width: 0; padding: 14px 0 16px; border-top: 1px solid var(--line-2); }
+.clue h4 { margin: 0; font-family: var(--serif); font-weight: 900; font-size: 18px; letter-spacing: .04em; display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+.clue h4 .no { font-family: var(--sans); font-size: 12px; color: var(--gold); font-weight: 700; letter-spacing: 0; }
+.clue p { margin: 6px 0 0; font-size: 13.5px; line-height: 1.75; color: var(--fg-2); display: grid; grid-template-columns: 3.4em minmax(0, 1fr); }
+.clue p b { color: var(--fg); }
+.clue .k { font-size: 12px; font-weight: 700; color: var(--fg-3); letter-spacing: .08em; }
+.fig h3 + .chips { margin-top: 10px; }
+.clue .can { font-size: 11.5px; padding: 0 7px; border-radius: 999px; border: 1px solid var(--malachite); color: var(--malachite); font-family: var(--sans); font-weight: 400; letter-spacing: 0; white-space: nowrap; }
+ol.order { margin: 0; padding: 0; list-style: none; counter-reset: o; }
+ol.order li { counter-increment: o; display: grid; grid-template-columns: 2.2em minmax(0, 1fr); gap: 2px 10px; padding: 9px 0; border-bottom: 1px solid var(--line); font-size: 14px; color: var(--fg-2); }
+ol.order li::before { content: counter(o); font-family: var(--serif); font-weight: 900; font-size: 18px; color: var(--gold); line-height: 1.4; }
+ol.order li b { color: var(--fg); }
+/* 侦查 */
+#report { margin-top: 18px; border-top: 2px solid var(--fg); padding-top: 14px; }
+#report h3 { font-family: var(--serif); font-weight: 900; font-size: 26px; letter-spacing: .06em; margin: 0; display: flex; align-items: baseline; flex-wrap: wrap; gap: 6px 12px; }
+#report h3 small { font-family: var(--sans); font-weight: 400; font-size: 13px; color: var(--fg-3); letter-spacing: 0; }
+#report .lead { margin: 6px 0 12px; font-size: 14px; color: var(--fg-2); max-width: 50em; }
+#report .lead b { color: var(--fg); }
+.lamps { display: inline-flex; gap: 5px; vertical-align: 1px; margin-left: 4px; }
+.lamps i { width: 10px; height: 10px; border-radius: 50%; border: 1.5px solid var(--line-2); }
+.lamps i.on { background: var(--cinnabar); border-color: var(--cinnabar); }
+.lamps i.mid { background: var(--gold); border-color: var(--gold); }
+ul.check li.m::before { background: var(--gold); }
+ul.check li .pv { font-size: 12px; color: var(--fg-3); margin-left: 4px; white-space: nowrap; }
+ul.next { margin: 8px 0 0; padding-left: 1.2em; font-size: 13.5px; line-height: 1.8; color: var(--fg-2); }
+ul.next b { color: var(--fg); }
+.quick { display: flex; flex-wrap: wrap; gap: 6px 8px; margin: 0 0 4px; }
+/* 下一页 */
+.pager { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; max-width: 1180px; margin: 0 auto; padding: 32px max(22px, env(safe-area-inset-right, 0px)) 0 max(22px, env(safe-area-inset-left, 0px)); }
+.pager a { display: block; border: 1px solid var(--line-2); border-radius: 12px; padding: 12px 16px; text-decoration: none; color: var(--fg); }
+.pager a:hover { border-color: var(--malachite); }
+.pager .k { font-size: 12px; color: var(--fg-3); }
+.pager b { font-family: var(--serif); font-size: 18px; font-weight: 900; letter-spacing: .08em; }
+.pager span { display: block; font-size: 12.5px; color: var(--fg-2); margin-top: 2px; }
+@media (max-width: 900px) {
+  .formula { font-size: 14px; }
+}
+</style>
+</head>
+<body>
+<header id="bar">
+  <a class="home" href="index.html"><span>A股疆域图</span><b>财报侦探</b></a>
+  <nav aria-label="章节">
+    <a href="#huibao">回报</a><a href="#hanjin">含金量</a><a href="#shuxue">输血</a><a href="#shangyu">商誉</a><a href="#juanzong">卷宗</a><a href="#fuzhu">附注</a><a href="#zhencha">侦查</a>
+  </nav>
+  <a class="go alt" href="faxian.html">好公司</a>
+  <a class="go alt" href="ganggu.html">港股通</a>
+  <a class="go" href="index.html">打开地图</a>
+</header>
+
+<section id="hero" aria-label="五年里出现的疑点越多，后来出现亏损的公司越多">
+  <div class="in">
+    <div>
+      <h1>财报<br>侦探</h1>
+      <p class="lede">平庸甚至有问题的公司，大多早在财报里留下了线索：<b>利润没有变成现金，钱总是不够用，资产里有说不清的东西</b>。这一页先把几项最要紧的指标拆开讲透，再用 <b id="hN"></b> 家公司2010–2025年的年报，看这些线索后来应验了多少，最后教你自己去附注里找证据。</p>
+      <p class="how">“<a href="faxian.html">发现好公司</a>”讲的是把注意力放在哪里，这一页讲的是先把哪些公司排除掉。数字由页面根据年报实时计算；“疑点”只是数据上的异常信号，不等于造假，也不构成投资建议。</p>
+    </div>
+    <div>
+      <ol class="sieve num" id="ladder"></ol>
+      <p id="ladderNote"></p>
+    </div>
+  </div>
+</section>
+
+<main>
+  <section class="ch" id="huibao">
+    <div class="txt">
+      <div class="step">第一课 · 回报率</div>
+      <h2>回报</h2>
+      <p class="claim">同样是15%的回报率，靠利润率、靠周转、靠借钱，是三门不同的生意。</p>
+      <div class="formula" aria-label="杜邦公式：净资产收益率等于净利率乘周转率乘权益乘数"><span class="op"></span><b>净资产收益率</b><em>股东每投一块钱，一年赚几分</em><span class="op">=</span><b>净利率</b><em>每卖一块钱，剩下几分</em><span class="op">×</span><b>周转率</b><em>一块钱资产，一年卖出几块钱</em><span class="op">×</span><b>权益乘数</b><em>一块钱本钱，撑起几块钱资产</em></div>
+      <p id="t1"></p>
+      <p class="note">这就是杜邦拆解。权益乘数 = 总资产 ÷ 净资产 = 1 ÷（1 − 资产负债率），负债率60%时是2.5倍。本页的总资产由归母净资产和资产负债率推算，少数股东权益较大的公司会有偏差。净利率和周转率相乘，是总资产收益率：不借钱时，这门生意本身能赚多少。</p>
+    </div>
+    <div class="viz">
+      <div class="fig">
+        <h3>三十国的杜邦拆解</h3>
+        <p class="sub">2016–2025年合计。横轴是净利率，纵轴是周转率，都用对数刻度；圆越大，今天的版图越大。虚线上的总资产收益率相同，越往右上越好。银行、证券、保险靠高杠杆经营，不放在图里，见下表。</p>
+        <div class="plot" id="pDupont"></div>
+        <p class="say" id="sDupont"></p>
+        <details class="more"><summary>三十国的杜邦数据表</summary><div class="scroll scrollx"><table class="dt num" id="tDupont"></table></div></details>
+      </div>
+      <div class="fig">
+        <h3>高回报是怎么来的，决定了它能维持多久</h3>
+        <p class="sub" id="drvSub"></p>
+        <div class="plot" id="pDriver"></div>
+        <p class="say" id="sDriver"></p>
+      </div>
+      <div class="fig">
+        <h3>借来的回报：负债率越高，后来越容易亏损</h3>
+        <p class="sub" id="levSub"></p>
+        <div class="ctl"><span>观察的五年</span><span class="seg" data-fig="lev"></span></div>
+        <div class="legend"><span><i class="box" style="background:var(--c2)"></i>此后出现过亏损年份的公司占比</span><span><i class="ring"></i>→<i class="dot" style="background:var(--fg);margin-left:4px"></i>净资产收益率：前五年 → 此后</span></div>
+        <div class="plot" id="pLev"></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="ch" id="hanjin">
+    <div class="txt">
+      <div class="step">第二课 · 现金</div>
+      <h2>含金量</h2>
+      <p class="claim">利润是一种观点，现金是一个事实。</p>
+      <p id="t2"></p>
+      <p class="note">含金量 = 这几年经营活动现金流净额合计 ÷ 归母净利润合计。要看多年合计，单看一年会被季节、结算时点干扰。折旧多的重资产行业，含金量天然在1以上；先垫钱、后收款的行业（军工配套、软件外包、工程），天然偏低，而且公司之间差别很大。所以要和同行比，和它自己的过去比。</p>
+    </div>
+    <div class="viz">
+      <div class="fig">
+        <h3>五年利润都为正的公司：含金量和此后的命运</h3>
+        <p class="sub" id="cashSub"></p>
+        <div class="ctl"><span>观察的五年</span><span class="seg" data-fig="cash"></span></div>
+        <div class="legend"><span><i class="box" style="background:var(--c2)"></i>此后出现过亏损年份的公司占比</span><span><i class="ring"></i>→<i class="dot" style="background:var(--fg);margin-left:4px"></i>净资产收益率：前五年 → 此后</span></div>
+        <div class="plot" id="pCash"></div>
+        <p class="say" id="sCash"></p>
+      </div>
+      <div class="fig">
+        <h3>两条线：累计的利润，累计的现金</h3>
+        <p class="sub">从2010年（或上市那年）起把每年的归母净利润、经营现金流加起来。两条线一起往上走是健康的；利润线越走越高、现金线留在原地，差出来的部分是应收账款、存货，或者根本不存在的东西。</p>
+        <div class="quick" id="twoPick"></div>
+        <div class="legend"><span><i style="background:var(--c4);height:3px"></i>累计归母净利润</span><span><i style="background:var(--c1);height:3px"></i>累计经营现金流</span></div>
+        <div class="plot" id="pTwo"></div>
+        <p class="say" id="sTwo"></p>
+      </div>
+      <div class="fig">
+        <h3>行业不同，含金量的“正常值”不同</h3>
+        <p class="sub" id="ccSecSub"></p>
+        <div class="legend"><span><i style="background:var(--mute);height:6px"></i>中间一半公司的范围</span><span><i class="dot" style="background:var(--fg)"></i>中位数</span></div>
+        <div class="plot" id="pCcSec"></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="ch" id="shuxue">
+    <div class="txt">
+      <div class="step">第三课 · 融资</div>
+      <h2>输血</h2>
+      <p class="claim">好公司给股东分钱，平庸的公司向股东要钱。</p>
+      <p id="t3"></p>
+      <p class="note">年报里没有直接给“融了多少、分了多少”，但可以从净资产倒推：利润会让净资产增加，分红和回购会让它减少，增发、配股、发股收购会让它增加。所以 累计利润 − 净资产的增加 ≈ 分红 + 回购 − 新募的股本，本页叫它“净回馈”。它还混有汇率、公允价值等其他综合收益，只适合看大方向。</p>
+    </div>
+    <div class="viz">
+      <div class="fig">
+        <h3>十六年里赚到的利润，净回到股东手里多少</h3>
+        <p class="sub" id="paySub"></p>
+        <div class="plot" id="pPay"></div>
+        <p class="say" id="sPay"></p>
+        <details class="more"><summary>净融资最多和净回馈最多的公司</summary><div class="scroll scrollx" id="payTables"></div></details>
+      </div>
+      <div class="fig">
+        <h3>五年里向外要的钱，和此后的命运</h3>
+        <p class="sub" id="extSub"></p>
+        <div class="ctl"><span>观察的五年</span><span class="seg" data-fig="ext"></span></div>
+        <div class="legend"><span><i class="box" style="background:var(--c2)"></i>此后出现过亏损年份的公司占比</span><span><i class="ring"></i>→<i class="dot" style="background:var(--fg);margin-left:4px"></i>净资产收益率：前五年 → 此后</span></div>
+        <div class="plot" id="pExt"></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="ch" id="shangyu">
+    <div class="txt">
+      <div class="step">第四课 · 资产</div>
+      <h2>商誉</h2>
+      <p class="claim">并购买来的利润，常常要连本带利还回去。</p>
+      <p id="t4"></p>
+      <p class="note">商誉 = 收购价 − 被收购公司净资产的公允价值，是为“未来会赚钱”预付的溢价。它不摊销，只在每年减值测试时判断要不要减记；减值一次性冲进利润。资产里另外几处容易藏水分的地方——应收账款、存货、预付款、在建工程、开发支出——本页的数据里没有，查法见“附注”。</p>
+    </div>
+    <div class="viz">
+      <div class="fig">
+        <h3>今天的商誉：占净资产多少</h3>
+        <p class="sub" id="gwSub"></p>
+        <div class="tiles num" id="gwTiles"></div>
+        <div class="plot" id="pGw"></div>
+        <p class="say" id="sGw"></p>
+      </div>
+      <div class="fig">
+        <h3>商誉超过净资产一半的公司</h3>
+        <p class="sub">按商誉占归母净资产的比例排序。点一行，在下面“侦查”里看它的完整报告。</p>
+        <div class="scroll scrollx" style="max-height:440px;overflow:auto"><table class="dt num" id="tGw"></table></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="ch" id="juanzong">
+    <div class="txt">
+      <div class="step">案例 · 事后看</div>
+      <h2>卷宗</h2>
+      <p class="claim">每一起大案，事后看都有迹可循。</p>
+      <p>这六起案子里，有的线索写在三张报表上，有的写在附注、审计意见和交易所的问询函里。事前能看到疑点，不等于事前能定案；但疑点叠加到这个程度，多数投资者需要的只是走开，而不是查清。</p>
+      <p class="note">案情来自中国证监会的行政处罚决定、法院判决和公司公告，以公开报道为准。小图里的市值和年报数字来自本项目的数据；已退市公司的年报没有收录，只画市值。</p>
+    </div>
+    <div class="viz">
+      <div class="fig">
+        <h3>六份卷宗</h3>
+        <p class="sub">实线是每月末的总市值；有年报的公司，下方的柱子是每年的归母净利润（金）和经营现金流（绿）。</p>
+        <div class="cases" id="cases"></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="ch" id="fuzhu">
+    <div class="txt">
+      <div class="step">方法 · 读附注</div>
+      <h2>附注</h2>
+      <p class="claim">数字在报表里，答案在附注里。</p>
+      <p>三张报表是结论，附注是证据。报表上一个“应收账款 30亿”，要到附注里才看得见：欠钱的是谁，欠了多久，计提了多少坏账，前五名里有没有关联方。下面十六条线索，按“看到什么、去哪里查、怎么算”写成卡片。</p>
+      <p class="note">标着“本页能算”的，在下面“侦查”里可以直接看到数字；其余的需要自己打开年报。年报全文可以在巨潮资讯网（cninfo.com.cn）或交易所网站免费下载。</p>
+    </div>
+    <div class="viz">
+      <div class="fig">
+        <h3>十六条线索，去哪里查</h3>
+        <div class="chips" id="clueChips"></div>
+        <div class="clues" id="clues"></div>
+      </div>
+      <div class="fig">
+        <h3>拿到一份年报，按这个顺序读</h3>
+        <ol class="order">
+          <li><span><b>先看审计报告。</b>意见是不是“标准无保留”；“关键审计事项”写了什么——审计师觉得最难核实的地方，往往就是要重点看的地方。换了会计师事务所、年报推迟披露，都要问为什么。</span></li>
+          <li><span><b>再看现金流量表。</b>经营现金流和利润差多少；投资现金流是不是年年大额流出；筹资现金流是不是一直在借新还旧、增发补血。</span></li>
+          <li><span><b>然后看资产负债表的大项。</b>哪几项资产最大，比去年变了多少；货币资金和有息负债是不是一起很高；应收、存货、预付、在建工程、商誉、开发支出是否膨胀得比收入快。</span></li>
+          <li><span><b>带着问题翻附注。</b>每一个“变化很大的大项”都去附注里找明细：账龄、前五名、受限情况、减值测试的假设、关联方。</span></li>
+          <li><span><b>最后才看利润表和管理层讨论。</b>扣非净利润和净利润差多少；毛利率和同行比是否离谱；管理层讲的故事，能不能在前面几步的数字里找到对应。</span></li>
+          <li><span><b>拉长到五年、和同行比。</b>一年的异常可能有合理解释，连续几年朝同一个方向偏，就是线索；同行都做不到而它做到了，就是更大的线索。</span></li>
+        </ol>
+      </div>
+    </div>
+  </section>
+
+  <section class="ch" id="zhencha">
+    <div class="txt">
+      <div class="step">动手 · 侦查</div>
+      <h2>侦查</h2>
+      <p class="claim">把线索用在一家公司身上。</p>
+      <p id="t7"></p>
+      <p class="note">五盏灯：利润含金量不到一半，有亏损年份，五年里外部融资超过期初净资产，资产负债率70%以上（房地产除外），商誉超过净资产30%。“同行位置”是在同一个国里的百分位。银行、证券、保险不适用。灯亮了不等于有问题，灯不亮也不等于没问题。</p>
+    </div>
+    <div class="viz">
+      <div class="fig">
+        <h3>查一家公司</h3>
+        <div class="ctl"><span style="position:relative"><input type="search" id="q" placeholder="名称、曾用名或代码" autocomplete="off" aria-label="查一家公司" style="width:14em"><span id="suggest" hidden></span></span></div>
+        <div class="quick" id="quick"></div>
+        <div id="report"></div>
+      </div>
+      <div class="fig">
+        <h3>同时亮起三盏灯以上的公司</h3>
+        <p class="sub" id="sigSub"></p>
+        <div class="ctl"><span>范围</span><select id="sigScope" aria-label="范围"></select></div>
+        <div class="scrollx"><table class="dt num" id="tSig"></table></div>
+        <p style="margin:10px 0 0"><button class="chip" id="moreSig" hidden></button></p>
+      </div>
+    </div>
+  </section>
+</main>
+
+<nav class="pager" aria-label="其他页面">
+  <a href="index.html"><div class="k">地图</div><b>A股疆域图</b><span>二十六年的行业版图</span></a>
+  <a href="guanchao.html"><div class="k">规律</div><b>观潮</b><span>从地图里读出的六条规律</span></a>
+  <a href="faxian.html"><div class="k">把注意力放在哪里</div><b>发现好公司</b><span>学科、产业、公司、价格筛四遍</span></a>
+  <a href="ganggu.html"><div class="k">对岸</div><b>港股通</b><span>从港股通里挑公司</span></a>
+</nav>
+
+<footer>
+  <h2>口径与边界</h2>
+  <ul>
+    <li>年报取自公开数据集，利润表和现金流量表从2010年报起，到2025年报止；约一半公司的2025年现金流量表没有取到，这些公司的含金量算到2024年。资产负债表里只取到了归母净资产、资产负债率和最近一年的商誉，应收账款、存货、货币资金、有息负债等明细没有收录。</li>
+    <li>“此后的命运”只统计今天还在图上的公司。同期上市、后来退市的公司大多没有年报数据，没有算进去；它们的结局通常更差，所以图上疑点组的结果偏乐观。年化回报用复权收盘价计算，含分红，从观察期最后一年的12月末算到2026年10月末。</li>
+    <li>净资产收益率 = 当年归母净利润 ÷ 年初与年末归母净资产的平均数。杜邦拆解里的总资产由归母净资产和资产负债率推算。净回馈 = 累计归母净利润 − 归母净资产的增加，约等于分红加回购减去新募股本。</li>
+    <li>卷宗里的案情来自证监会行政处罚决定、法院判决和公司公告的公开报道；数字以原始文件为准。附注线索和读年报的顺序是 AI（Claude）整理的通行方法，会有遗漏。</li>
+    <li>数据集本身可能有错漏，单家公司的数字请以公司公告为准。本页的“疑点”“灯”只是统计信号，不是对任何公司的指控。</li>
+  </ul>
+  <p>本页不构成投资建议。 <a href="index.html">回到地图</a> · <a href="faxian.html">发现好公司</a> · <a href="ganggu.html">港股通</a> · <a href="https://github.com/wanglu2016/agu-jiangyu" target="_blank" rel="noopener">源代码、数据来源与离线版</a></p>
+</footer>
+<div id="tt" hidden></div>
+
+<script src="assets/lib/d3.min.js"></script>
+<script src="assets/data.js"></script>
+<script src="assets/quality.js"></script>
+<script src="assets/hk.js"></script>
+<script src="assets/zhencha.js"></script>
+</body>
+</html>

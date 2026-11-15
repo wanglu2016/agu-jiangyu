@@ -1,6 +1,6 @@
 # 数据处理脚本
 
-把三份公开数据整理成网页用的 `assets/data.js`，以及“发现好公司”页用的 `assets/quality.js`。所有路径都相对于本目录：原始数据放 `input/`，中间结果写到 `out/`（两者都不进仓库）。
+把三份公开数据整理成网页用的 `assets/data.js`，以及“发现好公司”“财报侦探”页用的 `assets/quality.js`；“港股通”页用的 `assets/hk.js` 来自手工抄录的港股快照。所有路径都相对于本目录：原始数据放 `input/`，中间结果写到 `out/`（两者都不进仓库）。
 
 ## 准备输入
 
@@ -26,6 +26,7 @@ python3 make_web_assets.py   # 7. 合成 ../assets/data.js
 python3 make_extra.py        # 8. 名义GDP、候选国名单、观察名单 → ../assets/extra.js
 node candidates.js           # 9. 2023年1月起带候选国的版图（从原版图接续）→ ../assets/candidates.js
 python3 make_quality.py      # 10. 2010–2025年报摘要、历年年末复权价 → ../assets/quality.js
+python3 make_hk.py           # 10b. 港股快照（hk/*.csv）→ ../assets/hk.js
 python3 make_chars.py        # 11. 统计页面和数据用字
 python3 make_fonts.py        # 12. 裁剪字体 → ../assets/fonts/*.woff2
 python3 make_zip.py          # 13. 打包离线版 → ../download/agu-jiangyu-site.zip
@@ -41,5 +42,7 @@ python3 make_zip.py          # 13. 打包离线版 → ../download/agu-jiangyu-s
 - `make_extra.py`：年度名义GDP（来源和接续方法写在注释里），创新药、机器人、储能三个候选国的公司名单，低空观察名单，科技环节分组。名单按公司名称填写，脚本会从 `data.js` 查代码，查不到的会打印出来。
 - `candidates.js`：把候选国的公司从原来的国里划出，按 `export.py` 的规则重新选城，再用 `layout.js` 的算法从2022年12月的版图接续算到最后一个月，所以其余国家的位置基本不动。
 - `make_quality.py`：从三大报表里取每家公司每年的营收、归母净利润、归母净资产、经营现金流、资产负债率、商誉和研发费用，从 qlib 的复权收盘价里取每年12月末、上市首月和最后一个月的数值，量化后写成 base64（格式写在脚本开头的注释里）。旧格式的“净利润”就是归母净利润，新格式另有“归属于母公司所有者的净利润”一项，脚本优先取后者。数据集里的 `free_cash_flow`、`capital_expenditure` 两个字段其实是经营现金流和投资现金流净额，没有使用。
+- `make_hk.py`：读 `hk/ah_YYYYMMDD.csv`（A+H公司的两地股价，从经济通“AH股表现”页抄录，脚本用页面给出的溢价逐行校验）和 `hk/hk_YYYYMMDD.csv`（港股大公司的股价、市值、周息率、市盈率），加上脚本里手工标注的公司类型、所属的国、股权结构（W/V/S）、是否在港股通、分类，生成 `../assets/hk.js`。更新快照时换掉两个 CSV、改脚本开头的日期和汇率即可。
+- “财报侦探”的卷宗、附注线索，“港股通”的规则、暗礁和分类说明写在 `../assets/zhencha.js`、`../assets/ganggu.js` 和对应的 html 里，不由脚本生成。
 - “发现好公司”页里的前沿卡片（学科、节点、判断）和高校专业数字写在 `../assets/faxian.js` 里，不由脚本生成。
 - 处理方法和已知问题见网页里的“资料与边界”和“发现好公司”页末的“口径与边界”。

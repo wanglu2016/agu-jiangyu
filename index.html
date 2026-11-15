@@ -114,8 +114,8 @@ button { cursor: pointer; }
 #suggest .n { font-weight: 700; }
 #suggest .c { color: var(--fg-3); font-size: 12px; text-align: right; }
 #suggest .m { grid-column: 1 / -1; color: var(--fg-3); font-size: 12px; }
-#tabs { display: flex; gap: 2px; padding-block: 8px 0; padding-left: max(12px, env(safe-area-inset-left, 0px)); padding-right: max(12px, env(safe-area-inset-right, 0px)); overflow-x: auto; border-bottom: 1px solid var(--line); }
-#tabs button { border: 0; background: transparent; padding: 8px 7px 9px; color: var(--fg-3); font-size: 13.5px; border-bottom: 2px solid transparent; margin-bottom: -1px; white-space: nowrap; flex: none; }
+#tabs { display: flex; gap: 1px; padding-block: 8px 0; padding-left: max(10px, env(safe-area-inset-left, 0px)); padding-right: max(10px, env(safe-area-inset-right, 0px)); overflow-x: auto; border-bottom: 1px solid var(--line); }
+#tabs button { border: 0; background: transparent; padding: 8px 6px 9px; color: var(--fg-3); font-size: 13.5px; border-bottom: 2px solid transparent; margin-bottom: -1px; white-space: nowrap; flex: none; }
 #tabs button[aria-selected="true"] { color: var(--fg); border-bottom-color: var(--gold); font-weight: 700; }
 #pages { flex: 1; min-height: 0; overflow: auto; padding-block: 14px 24px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
 .page[hidden] { display: none; }
@@ -156,9 +156,9 @@ h2.sec { font-family: var(--serif); font-weight: 900; font-size: 21px; margin: 0
 .notes code { font-size: 12px; background: var(--panel-2); padding: 1px 4px; border-radius: 4px; }
 .foot { margin-top: 18px; font-size: 12px; color: var(--fg-3); line-height: 1.6; }
 
-#tabs a.out { flex: none; padding: 8px 4px 9px; font-size: 13.5px; color: var(--malachite); text-decoration: none; white-space: nowrap; font-weight: 700; }
+#tabs a.out { flex: none; padding: 8px 3px 9px; font-size: 13px; color: var(--malachite); text-decoration: none; white-space: nowrap; font-weight: 700; }
 #tabs a.out:first-of-type { margin-left: auto; }
-#tabs a.out::after { content: ""; display: inline-block; width: 6px; height: 6px; margin-left: 4px; border-top: 1.5px solid currentColor; border-right: 1.5px solid currentColor; transform: rotate(45deg) translateY(-1px); }
+#tabs a.out.zz::after { content: ""; display: inline-block; width: 6px; height: 6px; margin-left: 4px; border-top: 1.5px solid currentColor; border-right: 1.5px solid currentColor; transform: rotate(45deg) translateY(-1px); }
 #tabs a.out:hover { text-decoration: underline; text-underline-offset: 3px; }
 .finbars { display: block; width: 100%; height: 64px; margin: 6px 0 2px; }
 .finbars rect { fill: var(--malachite); }
@@ -246,6 +246,8 @@ h2.sec { font-family: var(--serif); font-weight: 900; font-size: 21px; margin: 0
       <button role="tab" data-tab="notes" aria-selected="false">资料与边界</button>
       <a class="out" id="toTide" href="guanchao.html" title="从这张图里读出的六条规律">观潮</a>
       <a class="out" id="toFind" href="faxian.html" title="发现好公司：从学科、产业、公司、价格筛四遍">好公司</a>
+      <a class="out" id="toDetect" href="zhencha.html" title="财报侦探：财务指标与财报里的线索">侦探</a>
+      <a class="out" id="toHK" href="ganggu.html" title="港股通：从港股通里挑公司">港股</a>
     </div>
     <div id="pages">
       <section class="page" data-page="now"></section>
@@ -261,6 +263,7 @@ h2.sec { font-family: var(--serif); font-weight: 900; font-size: 21px; margin: 0
 <script src="assets/data.js"></script>
 <script src="assets/extra.js"></script>
 <script src="assets/candidates.js"></script>
+<script src="assets/hk.js"></script>
 <script>
 "use strict";
 // ---------------------------------------------------------------- 数据
@@ -834,7 +837,7 @@ function renderNow(t) {
     ${seaCard(t)}
     <div class="card"><div class="label">${ym(t)} · 全图市值前十</div><div class="rows">${top.map(([o], i) => coRow(o, t, i + 1)).join('')}</div>${topFate(t, top)}</div>
     ${pro}
-    <div class="card"><div class="label">读图</div><a class="linkbtn" href="guanchao.html">观潮：从这张图里读出的六条规律</a><br><a class="linkbtn" style="display:inline-block;margin-top:8px" href="faxian.html">发现好公司：从学科、产业、公司、价格筛四遍</a><br><a class="linkbtn" style="display:inline-block;margin-top:8px" href="video.html">观看视频：怎么用、能看什么（4分38秒）</a></div>
+    <div class="card"><div class="label">读图</div><a class="linkbtn" href="guanchao.html">观潮：从这张图里读出的六条规律</a><br><a class="linkbtn" style="display:inline-block;margin-top:8px" href="faxian.html">发现好公司：从学科、产业、公司、价格筛四遍</a><br><a class="linkbtn" style="display:inline-block;margin-top:8px" href="zhencha.html">财报侦探：财务指标与财报里的线索</a><br><a class="linkbtn" style="display:inline-block;margin-top:8px" href="ganggu.html">港股通：从港股通里挑公司</a><br><a class="linkbtn" style="display:inline-block;margin-top:8px" href="video.html">观看视频：怎么用、能看什么（4分38秒）</a></div>
     <div class="card"><div class="label">年表</div>${ERAS.map(x => `<button class="linkbtn" style="display:block;margin:6px 0;text-align:left" data-goto="${x.a}">${x.a.slice(0, 4)}–${x.b.slice(0, 4)} ${x.t}</button>`).join('')}</div>`;
   bindRows(pages.now);
   pages.now.querySelectorAll('[data-goto]').forEach(b => b.onclick = () => { stop(); setTime(MONTHS.indexOf(b.dataset.goto), true); });
@@ -972,7 +975,8 @@ function finHTML(o) {
   const NY = FIN.ny, b = o.j * (NY * 4 + 1), dq = q => q === -32768 ? NaN : q === 0 ? 0 : Math.sign(q) * Math.pow(10, (Math.abs(q) - 1) / 3200 - 4);
   const ni = [], roe = [];
   for (let k = 0; k < NY; k++) { const n = dq(FIN.f[b + NY + k]), e0 = dq(FIN.f[b + 2 * NY + k]), e1 = dq(FIN.f[b + 2 * NY + k + 1]), e = e1 > 0 ? (e0 > 0 ? (e0 + e1) / 2 : e1) : NaN; ni.push(n); roe.push(isFinite(n) && e > 0 ? n / e * 100 : NaN); }
-  const link = `<a class="linkbtn" href="faxian.html#co=${o.code}">在“发现好公司”里看它的财报小传</a>`;
+  const hk = window.AGU_HK && window.AGU_HK.ah.find(r => r[0] === o.code), hkp = hk ? (hk[3] / (hk[2] * window.AGU_HK.fx) - 1) * 100 : 0;
+  const link = `<a class="linkbtn" href="faxian.html#co=${o.code}">在“发现好公司”里看它的财报小传</a><br><a class="linkbtn" href="zhencha.html#co=${o.code}">在“财报侦探”里查疑点</a>${hk ? `<br>也在港股上市（H股 ${hk[1]}），${window.AGU_HK.date.slice(5).replace('-', '月')}日收盘时${hkp >= 0 ? `A股比H股贵 ${Math.round(hkp)}%` : `H股比A股贵 ${Math.round(-hkp / (1 + hkp / 100))}%`}。 <a class="linkbtn" href="ganggu.html#co=${o.code}">在“港股通”里比一比</a>` : ''}`;
   if (!roe.some(isFinite)) return `<p class="prose sm dim">没有取到这家公司的年报。 ${link}</p>`;
   const ly = +MONTHS[o.a].slice(0, 4), last10 = roe.slice(NY - 10).filter(isFinite), avg = last10.length ? last10.reduce((x, y) => x + y, 0) / last10.length : NaN;
   const W = 320, H = 64, bw = W / NY, vals = roe.filter(isFinite), mx = Math.min(60, Math.max(20, ...vals)), mn = Math.max(-30, Math.min(0, ...vals)), y = v => 4 + (mx - Math.max(mn, Math.min(mx, v))) / (mx - mn) * (H - 18);
@@ -1070,7 +1074,7 @@ pages.notes.innerHTML = `
 <li>“退市”包括被吸收合并（如中国北车、海通证券），${CO.filter(o => o.b < LAST).length} 家。</li>
 <li>本图适合看行业版图的大势，不宜当作个股数据来源，也不构成投资建议。时代解说由 AI（Claude）编写，可能有错漏。</li>
 </ul>
-<p class="foot">最后一帧：2026年10月30日收盘。<br><a href="guanchao.html">观潮：从这张图里读出的六条规律</a> · <a href="faxian.html">发现好公司</a> · <a href="video.html">观看使用讲解视频（4分38秒）</a> · <a href="https://github.com/wanglu2016/agu-jiangyu" target="_blank" rel="noopener">源代码与离线版</a></p>`;
+<p class="foot">最后一帧：2026年10月30日收盘。<br><a href="guanchao.html">观潮：从这张图里读出的六条规律</a> · <a href="faxian.html">发现好公司</a> · <a href="zhencha.html">财报侦探</a> · <a href="ganggu.html">港股通</a> · <a href="video.html">观看使用讲解视频（4分38秒）</a> · <a href="https://github.com/wanglu2016/agu-jiangyu" target="_blank" rel="noopener">源代码与离线版</a></p>`;
 
 // ---------------------------------------------------------------- 启动
 refreshColors();
