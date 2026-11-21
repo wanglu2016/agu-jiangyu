@@ -1,7 +1,7 @@
-/* 持有一月：用真实历史练眼力。数据在 chiyou-data.js（tools/make_chiyou.py 生成）。 */
+/* 持有一月：用真实历史练眼力。题库在 chiyou-data.js（tools/make_chiyou.py 生成），排行榜服务器地址在 chiyou-config.js。 */
 'use strict';
 (function () {
-const C = window.AGU_CY;
+const C = window.AGU_CY, CFG = window.AGU_CY_CFG || {};
 const $ = s => document.querySelector(s);
 function b64(s, T) { const bin = atob(s), n = bin.length, u8 = new Uint8Array(n); for (let i = 0; i < n; i++) u8[i] = bin.charCodeAt(i); return T === Uint8Array ? u8 : new T(u8.buffer); }
 
@@ -20,12 +20,13 @@ const MI = new Int16Array(R), DPO = new Int32Array(R);
 const dPath = r => { const n = C.nd[MI[r]] + 1, o = DPO[r]; return Array.from({ length: n }, (_, i) => 1 + DPQ[o + i] / 10000); };
 const POOL = C.months.map(() => ({ all: [], big: [] }));
 for (let r = 0; r < R; r++) { const m = MI[r]; if (val(r, 'uni') === 1) POOL[m].all.push(r); if (val(r, 'big') === 1) POOL[m].big.push(r); }
-const mAll = ym => (+ym.slice(0, 4) - 2000) * 12 + (+ym.slice(5, 7) - 1);   // 2000-01 起的月序号（sea 和公司的退市月用它）
+const mAll = ym => (+ym.slice(0, 4) - 2000) * 12 + (+ym.slice(5, 7) - 1);
 const LASTALL = mAll(C.last);
 const coOf = r => C.co[val(r, 'co')];
+const pxOf = r => val(r, 'px');
 const fyOf = mi => { const ym = C.months[mi], y = +ym.slice(0, 4), m = +ym.slice(5, 7); return m >= 5 ? y - 1 : y - 2; };
 const LETTER = '甲乙丙丁戊';
-const TOTAL = 100000, FEE = 0.001;
+const TOTAL = 1000000, HALF = 500000, LOT = 100, FEE = 0.001;
 
 // ------------------------------------------------------------------ 格式
 const isF = Number.isFinite;
@@ -39,10 +40,11 @@ const yiS = v => !isF(v) ? '—' : (v < 0 ? '−' : '') + yi(Math.abs(v));
 const dateCN = s => `${+s.slice(0, 4)}年${+s.slice(5, 7)}月${+s.slice(8, 10)}日`;
 const ymCN = s => `${+s.slice(0, 4)}年${+s.slice(5, 7)}月`;
 const ymAll = t => `${2000 + Math.floor(t / 12)}-${String(t % 12 + 1).padStart(2, '0')}`;
+const span = mi => `${C.d0[mi].replace(/-/g, '.')}–${C.d1[mi].slice(5).replace('-', '.')}`;
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
-const shuffle = a => { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
 const median = a => { const b = a.filter(isF).sort((x, y) => x - y); if (!b.length) return NaN; const m = b.length >> 1; return b.length % 2 ? b[m] : (b[m - 1] + b[m]) / 2; };
 const mean = a => { const b = a.filter(isF); return b.length ? b.reduce((s, x) => s + x, 0) / b.length : NaN; };
+const shares = n => n.toLocaleString('zh-CN') + ' 股';
 
 function board(code, d) {
   if (code.startsWith('688')) return ['科创板', 20];
@@ -133,7 +135,7 @@ const IND = [
       const names = FLAGN.filter((_, i) => b & (1 << i));
       return { v: `${v} <small>个</small>`, s: `${v}个`, sub: (names.length ? names.join('；') + '。' : '') + `当天的非金融公司里，${zero}% 一个都没有` };
     }, hint: '财报侦探的四条线索，看截至当时的五个财年。疑点越多，此后越容易亏损；但它只是统计信号，不等于造假。' },
-  { k: 'sea', cat: '大环境', nm: '海平面', shared: 1, get: (r, x) => {
+  { k: 'sea', cat: '大环境', nm: '海平面', get: (r, x) => {
       const t = mAll(C.months[x.mi]), v = C.sea[t], hist = C.sea.slice(0, t + 1), p = Math.round(hist.filter(s => s < v).length / hist.length * 100);
       return { v: `${v.toFixed(0)}%`, s: `${v.toFixed(0)}%`, sub: `全市场市值 ÷ 近一年GDP。高于2000年以来 ${p}% 的月份；常见区间 60%–80%`, own: p };
     }, hint: '水位越高，此后几年越难赚钱；但它对下一个月的涨跌几乎没有解释力。' },
@@ -157,12 +159,17 @@ function spark(h, w = 230, hh = 56) {
   return `<svg class="spark" width="${w}" height="${hh}" viewBox="0 0 ${w} ${hh}" role="img" aria-label="近十年利润">${s}</svg>`;
 }
 
-// ------------------------------------------------------------------ 设置与存档
-const KEY = 'agu-chiyou-v1';
+// ------------------------------------------------------------------ 设置、存档、浏览器编号
+const KEY = 'agu-chiyou-v2';
 let MEM = null;
 function loadRec() { if (MEM) return MEM; try { MEM = JSON.parse(localStorage.getItem(KEY) || '{}'); } catch (e) { MEM = {}; } if (!MEM.rounds) MEM.rounds = []; if (!MEM.opt) MEM.opt = {}; return MEM; }
 function saveRec() { try { localStorage.setItem(KEY, JSON.stringify(MEM)); } catch (e) { /* 存不下也能玩，只是不留战绩 */ } }
 const OPT = Object.assign({ n: 3, pool: 'all', pct: true, hint: true }, loadRec().opt);
+function cid() {
+  let c = loadRec().cid;
+  if (!c) { c = Array.from(crypto.getRandomValues(new Uint8Array(12)), b => b.toString(16).padStart(2, '0')).join(''); loadRec().cid = c; saveRec(); }
+  return c;
+}
 
 function initSetup() {
   const nb = $('#optN');
@@ -179,67 +186,78 @@ function initSetup() {
 function persistOpt() { loadRec().opt = OPT; saveRec(); }
 
 // ------------------------------------------------------------------ 一局
-let G = null;
-function newRound(mi, rows) {
-  if (mi === undefined) {
-    mi = Math.floor(Math.random() * C.months.length);
-    rows = shuffle(POOL[mi][OPT.pool].slice()).slice(0, OPT.n);
+// 每只股票各抽一个月；同一局里不重复抽同一家公司
+function pickRows(n, pool) {
+  const rows = [], seen = new Set();
+  for (let g = 0; rows.length < n && g < 1000; g++) {
+    const p = POOL[Math.floor(Math.random() * C.months.length)][pool], r = p[Math.floor(Math.random() * p.length)], code = coOf(r)[0];
+    if (!seen.has(code)) { seen.add(code); rows.push(r); }
   }
-  const n = rows.length;
-  G = { mi, rows, n, cur: 0, first: [], flips: rows.map(() => []), acts: rows.map(() => null), shared: new Set(), done: false, pend: { a: 'hold', x: 0.5 }, warn: '' };
+  return rows;
+}
+// 约 50 万元按整手平均买成这几只：每只买到最接近 50万÷只数 的整手数，至少一手（和服务器 cy_submit 的算法一致）
+const holdings = rows => rows.map(r => Math.max(1, Math.floor(HALF / rows.length / (pxOf(r) * LOT) + 0.5)) * LOT);
+
+let G = null;
+function newRound(rows) {
+  rows = rows || pickRows(OPT.n, OPT.pool);
+  const sh0 = holdings(rows), cash = TOTAL - rows.reduce((s, r, i) => s + sh0[i] * pxOf(r), 0);
+  G = { rows, n: rows.length, sh0, cash0: cash, cash, cur: 0, flips: rows.map(() => []), acts: rows.map(() => null), done: false, pend: { a: 'hold', x: 0.5 }, warn: '', blk: null, pool: OPT.pool };
   G.first = rows.map(() => IND[Math.floor(Math.random() * IND.length)].k);
   $('#reveal').hidden = true;
   const p = $('#play'); p.hidden = false;
-  rerollFirst(); renderPlay();
+  renderPlay();
   p.scrollIntoView({ behavior: 'smooth', block: 'start' });
-}
-
-function rerollFirst() {
-  const i = G.cur;
-  if (G.shared.has(G.first[i])) { const c = IND.filter(d => !G.shared.has(d.k)); G.first[i] = c[Math.floor(Math.random() * c.length)].k; }
-  if (INDK[G.first[i]].shared) G.shared.add(G.first[i]);
-}
-function shownKeys(i) {
-  const ks = [G.first[i], ...G.flips[i]];
-  for (const k of G.shared) if (!ks.includes(k)) ks.push(k);
-  return ks;
 }
 
 function indBlock(r, k, tag, open, isNew) {
   const d = INDK[k], o = d.get(r, { mi: MI[r], open });
   const nm = d.nm + (d.fy && open ? `（${fyOf(MI[r])}年报）` : '');
   const p = isF(o.p) ? o.p : isF(o.own) ? o.own : NaN;
-  const bar = OPT.pct && isF(p) ? `<div class="pbar"><span>低</span><span class="tr"><i style="left:${p}%"></i></span><span>高</span><span class="tx">${isF(o.p) ? PTXT(o.p) : ''}</span></div>` : '';
+  const bar = OPT.pct && isF(p) ? `<div class="pbar"><span>低</span><span class="tr"><i style="left:${p}%"></i></span><span>高</span><span class="tx">${isF(o.p) ? `高于当天 ${o.p}% 的公司` : ''}</span></div>` : '';
   return `<div class="ind${isNew ? ' new' : ''}"><div class="top"><span class="nm">${nm}</span>${tag ? `<span class="tag">${tag}</span>` : ''}<span class="vv ${isF(o.cv) ? cls(o.cv) : ''}">${o.v}</span></div>
     ${o.sub ? `<div class="small">${o.sub}</div>` : ''}${o.chart || ''}${bar}${OPT.hint ? `<p class="hint">${d.hint}</p>` : ''}</div>`;
 }
 
+// 按比例算出要买卖的股数。卖：按持仓比例取整手（全卖除外）；买：按可用现金比例，买得起的整手数
+function planOf(i, a) {
+  const r = G.rows[i], px = pxOf(r), sh0 = G.sh0[i];
+  let d = 0;
+  if (a.a === 'sell') d = -(a.x >= 1 ? sh0 : Math.min(sh0, Math.max(LOT, Math.floor(sh0 * a.x / LOT + 0.5) * LOT)));
+  if (a.a === 'buy') d = Math.floor(G.cash * a.x / (px * LOT * (1 + FEE))) * LOT;
+  const fee = Math.abs(d) * px * FEE;
+  const cash1 = d < 0 ? G.cash + (-d) * px - fee : d > 0 ? G.cash - d * px - fee : G.cash;
+  return { d, fee, amt: Math.abs(d) * px, pos0: sh0 * px, pos1: (sh0 + d) * px, cash1 };
+}
+
 function renderPlay() {
-  const i = G.cur, r = G.rows[i], n = G.n, h0 = TOTAL / 2 / n, c0 = TOTAL / 2 / n;
-  const ks = shownKeys(i), used = G.flips[i].length, left = MAXFLIP - used;
+  const i = G.cur, r = G.rows[i], n = G.n;
+  const ks = [G.first[i], ...G.flips[i]], used = G.flips[i].length, left = 5 - used;
   const dots = G.rows.map((_, j) => `<span class="${j < i ? 'done' : j === i ? 'on' : ''}">${LETTER[j]}</span>`).join('');
   const decided = G.acts.slice(0, i).map((a, j) => `${LETTER[j]}${actText(a, true)}`).join('，');
-  const deck = CATS.map(cat => {
-    const items = IND.filter(d => d.cat === cat);
-    return `<div class="cat"><div class="ck">${CATN[cat] || cat}</div><div class="chips">${items.map(d => {
-      const got = ks.includes(d.k), s = got ? d.get(r, { mi: G.mi }).s : '';
-      return `<button class="chip${got ? ' got' : ''}" data-k="${d.k}" ${got || left <= 0 ? 'disabled' : ''}>${d.nm}${got ? ` · ${esc(s)}` : ''}</button>`;
-    }).join('')}</div></div>`;
-  }).join('');
-  const blocks = ks.map(k => indBlock(r, k, k === G.first[i] ? '随机给的' : (G.shared.has(k) && !G.flips[i].includes(k) ? '本局已翻开' : ''), false, k === G.fresh)).join('');
+  const deck = CATS.map(cat => `<div class="cat"><div class="ck">${CATN[cat] || cat}</div><div class="chips">${IND.filter(d => d.cat === cat).map(d => {
+    const got = ks.includes(d.k), s = got ? d.get(r, { mi: MI[r] }).s : '';
+    return `<button class="chip${got ? ' got' : ''}" data-k="${d.k}" ${got || left <= 0 ? 'disabled' : ''}>${d.nm}${got ? ` · ${esc(s)}` : ''}</button>`;
+  }).join('')}</div></div>`).join('');
+  const blocks = ks.map(k => indBlock(r, k, k === G.first[i] ? '随机给的' : '', false, k === G.fresh)).join('');
   G.fresh = null;
-  const pa = G.pend;
+  const pa = G.pend, pl = planOf(i, pa), w = v => (v / TOTAL * 100).toFixed(1) + '%';
+  let plan;
+  if (pa.a === 'hold') plan = `不动：仍持有约 <b>${money(pl.pos0)}</b>，可用现金 ${money(G.cash)}。`;
+  else if (pa.a === 'sell') plan = `卖出约 <b>${money(pl.amt)}</b>（按整手），这只股票从 ${w(pl.pos0)} 降到 <b>${w(pl.pos1)}</b>；可用现金变成 <b>${money(pl.cash1)}</b>。`;
+  else plan = pl.d > 0 ? `买入约 <b>${money(pl.amt)}</b>（按整手，另扣费用 ${money(pl.fee)}），这只股票从 ${w(pl.pos0)} 升到 <b>${w(pl.pos1)}</b>；还剩现金 <b>${money(pl.cash1)}</b>。` : '可用现金不够买一手。';
+  const okDis = pa.a === 'buy' && pl.d <= 0;
   $('#play').innerHTML = `
     <h2>看股</h2>
-    <p class="sub">名字和日期都藏起来了。几只股票来自同一天；翻完、定完最后一只，才揭晓一个月后的结果。</p>
+    <p class="sub">名字和日期都藏起来了。每只股票来自不同的一天，各自持有一个月；全部定完，才揭晓结果。</p>
     <div class="progress"><div class="dots" aria-label="进度">${dots}</div>
-      <div class="acct">总资金 <b>${TOTAL.toLocaleString('zh-CN')} 元</b> · 股票 <b>50%</b> · 每只 <b>${money(h0)}</b>${decided ? ` · 已定：${decided}` : ''}</div></div>
+      <div class="acct">总资产 <b>${TOTAL.toLocaleString('zh-CN')} 元</b> · 可用现金 <b>${money(G.cash)}</b>${decided ? ` · 已定：${decided}` : ''}</div></div>
     <div class="board">
       <div class="stock">
         <h3>股票${LETTER[i]} <small>第 ${i + 1} 只，共 ${n} 只</small></h3>
-        <p class="hold">你持有 <b>${money(h0)}</b>（占总资金 ${(h0 / TOTAL * 100).toFixed(1)}%），它还分到 <b>${money(c0)}</b> 现金可以加仓。</p>
+        <p class="hold">你持有约 <b>${money(pl.pos0)}</b>（占总资产 ${w(pl.pos0)}）。现在的 <b>${money(G.cash)}</b> 可用现金都可以用来加仓${i < n - 1 ? '；这里卖出的钱，后面几只也能用' : ''}。</p>
         <div class="inds">${blocks}</div>
-        ${used === 0 ? '<div class="empty">从右边的牌里再翻几项。也可以只看这一项就做决定。</div>' : ''}
+        ${used === 0 ? '<div class="empty">从旁边的牌里再翻几项。也可以只看这一项就做决定。</div>' : ''}
       </div>
       <div>
         <div class="deck">
@@ -252,11 +270,11 @@ function renderPlay() {
           <div class="seg big" id="act" role="group" aria-label="买卖">
             <button data-a="sell" aria-pressed="${pa.a === 'sell'}">卖出</button><button data-a="hold" aria-pressed="${pa.a === 'hold'}">不动</button><button data-a="buy" aria-pressed="${pa.a === 'buy'}">买入</button>
           </div>
-          <div class="ratio" ${pa.a === 'hold' ? 'hidden' : ''}><span class="k">${pa.a === 'sell' ? '卖掉持仓的' : '用掉它那份现金的'}</span>
+          <div class="ratio" ${pa.a === 'hold' ? 'hidden' : ''}><span class="k">${pa.a === 'sell' ? '卖掉持仓的' : '用掉可用现金的'}</span>
             ${[0.1, 0.25, 0.5, 0.75, 1].map(x => `<button data-x="${x}" aria-pressed="${Math.abs(pa.x - x) < 1e-9}">${x * 100}%</button>`).join('')}</div>
-          <p class="plan">${planText(pa, h0, c0)}</p>
+          <p class="plan">${plan}</p>
           ${G.warn ? `<p class="warn">${G.warn}</p>` : ''}
-          <div class="nextrow"><button class="btn" id="ok">${i < n - 1 ? `确定，看股票${LETTER[i + 1]}` : '确定，一个月后见'}</button></div>
+          <div class="nextrow"><button class="btn" id="ok" ${okDis ? 'disabled' : ''}>${i < n - 1 ? `确定，看股票${LETTER[i + 1]}` : '确定，一个月后见'}</button></div>
         </div>
       </div>
     </div>`;
@@ -267,24 +285,18 @@ function renderPlay() {
   play.querySelector('#ok').onclick = confirmAct;
 }
 
-function planText(a, h0, c0) {
-  const w = v => (v / TOTAL * 100).toFixed(1) + '%';
-  if (a.a === 'hold') return `不动：仍持有 <b>${money(h0)}</b>。`;
-  if (a.a === 'sell') { const t = h0 * a.x; return `卖出 ${a.x * 100}%：卖掉 <b>${money(t)}</b>，这只股票的仓位从 ${w(h0)} 降到 <b>${w(h0 - t)}</b>。`; }
-  const t = c0 * a.x; return `买入 <b>${money(t)}</b>，这只股票的仓位从 ${w(h0)} 升到 <b>${w(h0 + t * (1 - FEE))}</b>。`;
-}
-function actText(a, short) {
+function actText(a, short, sh0) {
   if (!a) return '';
-  if (a.blk) return short ? (a.want === 'buy' ? '想买没买进' : '想卖没卖出') : (a.want === 'buy' ? `想买入 ${a.wx * 100}%，当天涨停封板，没买进` : `想卖出 ${a.wx * 100}%，当天跌停封板，没卖出`);
-  if (a.a === 'hold') return '不动';
-  return (a.a === 'sell' ? '卖出' : '买入') + ` ${a.x * 100}%`;
+  if (a.blk) return short ? (a.want === 'buy' ? '想买没买进' : '想卖没卖出') : (a.want === 'buy' ? `想买入，当天涨停封板，没买进` : `想卖出，当天跌停封板，没卖出`);
+  if (a.a === 'hold' || !a.d) return '不动';
+  const t = (a.a === 'sell' ? '卖出' : '买入') + (a.a === 'sell' ? ` ${a.x * 100}%` : ` 现金的${a.x * 100}%`);
+  return short ? t : `${t}（${a.d > 0 ? '+' : '−'}${shares(Math.abs(a.d))}）`;
 }
 
 function flip(k) {
   const i = G.cur;
-  if (G.flips[i].length >= MAXFLIP || shownKeys(i).includes(k)) return;
+  if (G.flips[i].length >= 5 || G.first[i] === k || G.flips[i].includes(k)) return;
   G.flips[i].push(k); G.fresh = k;
-  if (INDK[k].shared) G.shared.add(k);
   renderPlay();
 }
 
@@ -296,87 +308,80 @@ function confirmAct() {
     G.pend = { a: 'hold', x: a.x };
     renderPlay(); return;
   }
-  const act = { a: a.a, x: a.a === 'hold' ? 0 : a.x };
-  if (G.blk && a.a === 'hold') Object.assign(act, { blk: 1, want: G.blk.want, wx: G.blk.wx });
-  G.acts[i] = act; G.blk = null; G.warn = ''; G.pend = { a: 'hold', x: 0.5 };
-  if (i < G.n - 1) { G.cur++; rerollFirst(); renderPlay(); $('#play').scrollIntoView({ behavior: 'smooth', block: 'start' }); return; }
+  const pl = planOf(i, a);
+  const act = { a: pl.d ? a.a : 'hold', x: pl.d ? a.x : 0, d: pl.d };
+  if (G.blk && !pl.d) Object.assign(act, { blk: 1, want: G.blk.want, wx: G.blk.wx });
+  G.acts[i] = act; G.cash = pl.cash1; G.blk = null; G.warn = ''; G.pend = { a: 'hold', x: 0.5 };
+  if (i < G.n - 1) { G.cur++; renderPlay(); $('#play').scrollIntoView({ behavior: 'smooth', block: 'start' }); return; }
   G.done = true;
   const rec = loadRec();
-  rec.rounds.push({ mi: G.mi, rows: G.rows, acts: G.acts.map(x => [x.a, x.x, x.blk ? (x.want === 'buy' ? 1 : -1) : 0, x.wx || 0]), first: G.first, flips: G.flips, ts: Date.now() });
+  G.rec = { rows: G.rows, sh0: G.sh0, pool: G.pool, acts: G.acts.map(x => [x.a, x.x, x.d, x.blk ? (x.want === 'buy' ? 1 : -1) : 0]), first: G.first, flips: G.flips, ts: Date.now() };
+  rec.rounds.push(G.rec);
   if (rec.rounds.length > 500) rec.rounds = rec.rounds.slice(-500);
   saveRec();
   $('#play').hidden = true;
   renderReveal(); renderRecord();
   $('#reveal').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  submitRound(G.rec);
 }
 
-// ------------------------------------------------------------------ 结算
-function settle(rows, acts, key) {
-  const n = rows.length, h0 = TOTAL / 2 / n, c0 = TOTAL / 2 / n;
-  let total = TOTAL / 2, base = TOTAL / 2; const per = [];
-  for (let i = 0; i < n; i++) {
-    const r = val(rows[i], key) / 100; if (!isF(r)) return null;
-    const a = acts[i]; let h = h0, dc = 0;
-    if (a.a === 'sell') { h = h0 * (1 - a.x); dc = h0 * a.x * (1 - FEE); }
-    if (a.a === 'buy') { h = h0 + c0 * a.x * (1 - FEE); dc = -c0 * a.x; }
-    const v = h * (1 + r), b = h0 * (1 + r);
-    total += v + dc; base += b;
-    per.push({ r: r * 100, eff: v + dc - b, h, w0: h0 / TOTAL * 100, w1: h / TOTAL * 100 });
-  }
-  return { total, base, eff: total - base, per };
-}
+// ------------------------------------------------------------------ 结算（和服务器 cy_submit 同一套算法）
 const HKEY = ['f1', 'f12', 'f36'];
 const mktOf = (mi, k) => { const v = C.mkt[mi][k]; return v === null ? NaN : v; };
-const actsOf = rd => rd.acts.map(x => ({ a: x[0], x: x[1], blk: x[2] ? 1 : 0, want: x[2] === 1 ? 'buy' : x[2] === -1 ? 'sell' : '', wx: x[3] }));
+const actsOf = rd => rd.acts.map(x => ({ a: x[0], x: x[1], d: x[2], blk: x[3] ? 1 : 0, want: x[3] === 1 ? 'buy' : x[3] === -1 ? 'sell' : '' }));
+function settle(rows, sh0, acts, h) {
+  let pnl = 0, base = 0, mk = 0; const per = [];
+  for (let i = 0; i < rows.length; i++) {
+    const r = rows[i], px = pxOf(r), ret = val(r, HKEY[h]) / 100, m = mktOf(MI[r], h) / 100;
+    if (!isF(ret) || !isF(m)) return null;
+    const d = acts[i].d || 0, fee = Math.abs(d) * px * FEE, sh = sh0[i] + d;
+    const v = sh * px * ret - fee, b = sh0[i] * px * ret;
+    pnl += v; base += b; mk += sh * px * m;
+    per.push({ ret: ret * 100, m: m * 100, eff: v - b, w0: sh0[i] * px / TOTAL * 100, w1: sh * px / TOTAL * 100, sh0: sh0[i], sh });
+  }
+  return { pnl, base, eff: pnl - base, mk, per };
+}
 
 // ------------------------------------------------------------------ 揭晓
 function renderReveal() {
-  const { mi, rows, acts } = G, n = rows.length;
-  const S = HKEY.map(k => settle(rows, acts, k)), s1 = S[0], mk1 = mktOf(mi, 0);
-  const gain = s1.total - TOTAL, mkVal = TOTAL / 2 * (1 + mk1 / 100) + TOTAL / 2;
-  const moved = acts.some(a => a.a !== 'hold');
-  let verdict = `一个月后，账户${gain >= 0 ? '赚了' : '亏了'} ${money(Math.abs(gain))}（${sgn(gain / TOTAL * 100, 2)}）。`;
-  verdict += moved ? `其中你的操作${s1.eff >= 0 ? '多赚了' : '少赚了'} ${money(Math.abs(s1.eff))}，其余来自原来的持仓。` : '你没有动仓位，结果完全由原来的持仓决定。';
-  verdict += `同一个月，大盘${mk1 >= 0 ? '涨' : '跌'}了 ${Math.abs(mk1).toFixed(1)}%。`;
+  const { rows, acts, sh0 } = G;
+  const S = [0, 1, 2].map(h => settle(rows, sh0, acts, h)), s1 = S[0];
+  const moved = acts.some(a => a.d);
+  let verdict = `一个月后（每只股票各算各自的一个月），账户${s1.pnl >= 0 ? '赚了' : '亏了'} ${money(Math.abs(s1.pnl))}（${sgn(s1.pnl / TOTAL * 100, 2)}）。`;
+  verdict += moved ? `其中你的操作${s1.eff >= 0 ? '多赚了' : '少赚了'} ${money(Math.abs(s1.eff))}。` : '你没有动仓位，盈亏全部来自原来的持仓。';
+  verdict += `同样的仓位放在各自同期的大盘上，会${s1.mk >= 0 ? '赚' : '亏'} ${money(Math.abs(s1.mk))}。`;
   const tile = (v, k, c) => `<div class="tile"><div class="v ${c || ''}">${v}</div><div class="k">${k}</div></div>`;
-  const tiles = tile(moneyS(gain), `账户盈亏（${sgn(gain / TOTAL * 100, 2)}）`, cls(gain)) +
-    tile(moneyS(s1.base - TOTAL), '如果一动不动', cls(s1.base - TOTAL)) +
-    tile(moneyS(s1.eff), '你的操作带来', cls(s1.eff)) +
-    tile(moneyS(mkVal - TOTAL), '同样一半仓位买大盘', cls(mk1));
+  const tiles = tile(moneyS(s1.pnl), `账户盈亏（${sgn(s1.pnl / TOTAL * 100, 2)}）`, cls(s1.pnl)) + tile(moneyS(s1.base), '如果一动不动', cls(s1.base)) +
+    tile(moneyS(s1.eff), '你的操作带来', cls(s1.eff)) + tile(moneyS(s1.mk), '同样仓位买同期大盘', cls(s1.mk));
   const rowsT = rows.map((r, i) => {
     const c = coOf(r), p = s1.per[i];
-    return `<tr><td>${LETTER[i]} · <b>${esc(c[1])}</b> <span class="small">${c[0]}</span></td><td>${actText(acts[i], true)}</td>
-      <td class="${cls(p.r)}">${sgn(p.r)}</td><td>${p.w0.toFixed(1)}% → ${p.w1.toFixed(1)}%</td><td>高于 ${val(r, 'p1')}%</td><td class="${cls(p.eff)}">${moneyS(p.eff)}</td></tr>`;
+    return `<tr><td>${LETTER[i]} · <b>${esc(c[1])}</b> <span class="small">${c[0]}</span></td><td>${span(MI[r])}</td><td>${actText(acts[i], true)}</td><td>${p.sh0.toLocaleString('zh-CN')} → ${p.sh.toLocaleString('zh-CN')}</td>
+      <td class="${cls(p.ret)}">${sgn(p.ret)}</td><td class="${cls(p.m)}">${sgn(p.m)}</td><td>高于 ${val(r, 'p1')}%</td><td class="${cls(p.eff)}">${moneyS(p.eff)}</td></tr>`;
   }).join('');
-  const later = [1, 2].map(h => S[h] ? `${h === 1 ? '一年' : '三年'}后，你的操作带来 <b class="${cls(S[h].eff)}">${moneyS(S[h].eff)}</b>（大盘${sgn(mktOf(mi, h))}）` : `${h === 1 ? '一年' : '三年'}后的结果还没到（数据截至${dateCN(C.lastDay)}）`).join('；');
+  const later = [1, 2].map(h => S[h] ? `${h === 1 ? '一年' : '三年'}后，你的操作带来 <b class="${cls(S[h].eff)}">${moneyS(S[h].eff)}</b>（账户${moneyS(S[h].pnl)}）` : `${h === 1 ? '一年' : '三年'}后的结果还没全到（数据截至${dateCN(C.lastDay)}）`).join('；');
   const longT = rows.map((r, i) => {
-    const c = coOf(r), cells = HKEY.map((k, h) => { const v = val(r, k), m = mktOf(mi, h); return isF(v) ? `<td class="${cls(v)}">${sgn(v)}<div class="small">比大盘${isF(m) ? sgn(v - m).replace('%', ' 个百分点') : '—'}</div></td>` : '<td class="small">还没到</td>'; }).join('');
+    const c = coOf(r), cells = HKEY.map((k, h) => { const v = val(r, k), m = mktOf(MI[r], h); return isF(v) ? `<td class="${cls(v)}">${sgn(v)}<div class="small">同期大盘 ${sgn(m)}</div></td>` : '<td class="small">还没到</td>'; }).join('');
     return `<tr><td>${LETTER[i]} · <b>${esc(c[1])}</b><div class="small">${actText(acts[i], true)}</div></td>${cells}</tr>`;
-  }).join('') + `<tr class="sum"><td>大盘</td>${[0, 1, 2].map(h => { const m = mktOf(mi, h); return isF(m) ? `<td class="${cls(m)}">${sgn(m)}</td>` : '<td class="small">还没到</td>'; }).join('')}</tr>` +
-    `<tr class="sum"><td>你的操作带来</td>${S.map(s => s ? `<td class="${cls(s.eff)}">${moneyS(s.eff)}</td>` : '<td class="small">还没到</td>').join('')}</tr>`;
-  const link = `${location.pathname}#g=${mi}.${rows.join('-')}`;
+  }).join('') + `<tr class="sum"><td>你的操作带来</td>${S.map(s => s ? `<td class="${cls(s.eff)}">${moneyS(s.eff)}</td>` : '<td class="small">还没到</td>').join('')}</tr>`;
   $('#reveal').innerHTML = `
     <h2>揭晓</h2>
-    <p class="when">你是在 <b>${dateCN(C.d0[mi])}</b> 收盘时做的决定，<b>${dateCN(C.d1[mi])}</b> 收盘时结算。 <a href="index.html#${C.months[mi]}">看那个月的地图</a></p>
     <p class="verdict">${verdict}</p>
     <div class="tiles">${tiles}</div>
-    <div class="scroll"><table class="res"><thead><tr><th>股票</th><th>你的操作</th><th>一个月涨跌</th><th>仓位（占总资金）</th><th>在当月全部A股里</th><th>操作带来</th></tr></thead><tbody>${rowsT}</tbody></table></div>
-    <div class="fig"><h3>这一个月，全部A股的涨跌分布</h3>
-      <p class="sub">当天上市满一年、有交易的 ${C.ne[mi].toLocaleString('zh-CN')} 家公司。竖线是你的股票；虚线是中位数（${sgn(C.med1[mi])}）。同一个月里，股票之间的差别往往比你翻开的任何一项指标能解释的大得多。</p>
-      <div class="plot" id="histPlot"></div></div>
-    <div class="fig"><h3>它们是谁</h3><p class="sub">黄色底色的是你翻开的指标。曲线是这一个月每天的走势，虚线是大盘。</p><div class="cards" id="cards"></div></div>
+    <div class="rankbox" id="rankBox" aria-live="polite"></div>
+    <div class="scroll"><table class="res"><thead><tr><th>股票</th><th>那一个月</th><th>你的操作</th><th>持股（股）</th><th>涨跌</th><th>同期大盘</th><th>在当月全部A股里</th><th>操作带来</th></tr></thead><tbody>${rowsT}</tbody></table></div>
+    <div class="fig"><h3>它们是谁</h3><p class="sub">黄色底色的是你翻开的指标。小柱图是那个月全部A股的涨跌分布，竖线是这只股票；曲线是这一个月每天的走势，虚线是同期大盘。同一个月里，股票之间的差别往往比任何一项指标能解释的大得多。</p><div class="cards" id="cards"></div></div>
     <div class="fig"><h3>再往后看：一年、三年</h3>
-      <p class="sub">假设你把这次调整后的仓位一直拿着（含分红，不再操作）。${later}。</p>
+      <p class="sub">假设你把这次调整后的仓位一直拿着（含分红，不再操作）。${later}。曲线是每只股票相对它自己同期大盘的走势：高于“和大盘一样”就是跑赢了。</p>
       <div class="legend" id="longLegend"></div><div class="plot" id="longPlot"></div>
       <div class="scroll"><table class="res"><thead><tr><th>股票</th><th>一个月</th><th>一年</th><th>三年</th></tr></thead><tbody>${longT}</tbody></table></div></div>
     <div class="again"><button class="btn" id="again">再来一局</button><button class="btn ghost" id="toSetup">换个设置</button>
       <button class="linkbtn" id="share">复制这一局的链接，让别人玩同一局</button><span id="copied" aria-live="polite"></span></div>`;
   $('#reveal').hidden = false;
-  drawHist(); drawCards(); drawLong();
+  drawCards(); drawLong(); renderRankBox();
   $('#again').onclick = () => newRound();
   $('#toSetup').onclick = () => $('#kaiju').scrollIntoView({ behavior: 'smooth' });
   $('#share').onclick = () => {
-    const url = location.origin && location.origin !== 'null' ? location.origin + link : location.href.split('#')[0] + link.slice(location.pathname.length);
+    const url = location.href.split('#')[0] + '#g=' + rows.join('-');
     const done = () => { $('#copied').textContent = '已复制'; setTimeout(() => { $('#copied').textContent = ''; }, 2500); };
     if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(url).then(done, () => { $('#copied').textContent = url; });
     else $('#copied').textContent = url;
@@ -386,50 +391,38 @@ function renderReveal() {
 const LINEC = ['var(--ink)', '#b07d1a', '#8a55a8', '#2d8c9c', '#9c5b37'];
 function wOf(sel, def) { const e = $(sel); return Math.max(280, Math.min(def, (e && e.clientWidth) || def)); }
 
-function drawHist() {
-  const { mi, rows } = G, h = C.hist[mi], W = wOf('#histPlot', 900), L = 34, Rr = 16, B = 30;
-  const xOf0 = v => L + (Math.max(-31, Math.min(31, v)) + 32) / 64 * (W - L - Rr);
-  const lv = [], pl = [];
-  rows.forEach(r => { const x = xOf0(val(r, 'f1')); let k = 0; while (pl.some(p => Math.abs(p[0] - x) < 54 && p[1] === k)) k++; pl.push([x, k]); lv.push(k); });
-  const T = 26 + 15 * Math.max(...lv), H = 170 + T;
-  const n = h.length, bw = (W - L - Rr) / n, mx = Math.max(...h);
-  const xOf = v => { const c = Math.max(-31, Math.min(31, v)); return L + (c + 32) / 64 * (W - L - Rr); };
+function miniHist(r, W) {
+  const mi = MI[r], h = C.hist[mi], H = 58, T = 14, B = 14, mx = Math.max(...h), n = h.length, bw = W / n;
+  const xOf = v => (Math.max(-31, Math.min(31, v)) + 32) / 64 * W;
   let s = '';
-  h.forEach((c, i) => { const hh = c / mx * (H - T - B); const lo = i === 0 ? -Infinity : -30 + (i - 1) * 2; s += `<rect x="${L + i * bw + 0.5}" y="${H - B - hh}" width="${bw - 1}" height="${hh}" style="fill:${lo < 0 && i < 16 ? 'var(--down-bg)' : 'var(--up-bg)'};stroke:${i < 16 ? 'var(--down)' : 'var(--up)'};stroke-opacity:.35"/>`; });
-  [-30, -20, -10, 0, 10, 20, 30].forEach(v => { s += `<text x="${xOf(v)}" y="${H - B + 16}" text-anchor="middle">${v > 0 ? '+' : v < 0 ? '−' : ''}${Math.abs(v)}%</text>`; });
-  s += `<line class="zero" x1="${L}" x2="${W - Rr}" y1="${H - B}" y2="${H - B}"/>`;
-  const md = xOf(C.med1[mi]); s += `<line x1="${md}" x2="${md}" y1="${T}" y2="${H - B}" style="stroke:var(--mk);stroke-dasharray:4 3"/>`;
-  rows.forEach((r, i) => {
-    const v = val(r, 'f1'), x = xOf(v), y = T - 10 - 15 * lv[i];
-    s += `<line x1="${x}" x2="${x}" y1="${y + 4}" y2="${H - B}" style="stroke:var(--fg);stroke-width:2"/><text class="lab hp" x="${x}" y="${y}" text-anchor="middle">${LETTER[i]} ${sgn(v, 0)}</text>`;
-  });
-  $('#histPlot').innerHTML = `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" role="img" aria-label="当月全部A股的一个月涨跌分布">${s}</svg>`;
+  h.forEach((c, i) => { const hh = c / mx * (H - T - B); s += `<rect x="${i * bw + 0.5}" y="${H - B - hh}" width="${Math.max(1, bw - 1)}" height="${hh}" style="fill:${i < 16 ? 'var(--down-bg)' : 'var(--up-bg)'};stroke:${i < 16 ? 'var(--down)' : 'var(--up)'};stroke-opacity:.3"/>`; });
+  const md = xOf(C.med1[mi]), v = val(r, 'f1'), x = xOf(v);
+  s += `<line x1="${md}" x2="${md}" y1="${T - 2}" y2="${H - B}" style="stroke:var(--mk);stroke-dasharray:3 2"/>`;
+  s += `<line x1="${x}" x2="${x}" y1="${T - 2}" y2="${H - B}" style="stroke:var(--fg);stroke-width:2"/>`;
+  s += `<text x="${Math.min(W - 2, Math.max(2, x))}" y="${T - 4}" text-anchor="${x > W - 60 ? 'end' : x < 60 ? 'start' : 'middle'}" class="lab">高于当月 ${val(r, 'p1')}%</text>`;
+  s += `<text x="0" y="${H - 2}">−30%</text><text x="${W / 2}" y="${H - 2}" text-anchor="middle">0</text><text x="${W}" y="${H - 2}" text-anchor="end">+30%</text>`;
+  return `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" role="img" aria-label="当月全部A股的涨跌分布">${s}</svg>`;
 }
 
 function dayChart(r, W) {
-  const mi = MI[r], sp = dPath(r), mp = C.mday[mi].map(q => 1 + q / 10000), H = 112, L = 6, Rr = 74, T = 10, B = 18;
-  const all = sp.concat(mp).concat([1]), mn = Math.min(...all), mx = Math.max(...all), span = mx - mn || 0.01, GAP = 15;
-  const x = i => L + i / (sp.length - 1) * (W - L - Rr), y = v => T + (mx - v) / span * (H - T - B);
+  const mi = MI[r], sp = dPath(r), mp = C.mday[mi].map(q => 1 + q / 10000), H = 112, L = 6, Rr = 74, T = 10, B = 18, GAP = 15;
+  const all = sp.concat(mp).concat([1]), mn = Math.min(...all), mx = Math.max(...all), sp_ = mx - mn || 0.01;
+  const x = i => L + i / (sp.length - 1) * (W - L - Rr), y = v => T + (mx - v) / sp_ * (H - T - B);
   const path = a => a.map((v, i) => `${i ? 'L' : 'M'}${x(i).toFixed(1)},${y(v).toFixed(1)}`).join('');
   const fin = (sp[sp.length - 1] - 1) * 100, fm = (mp[mp.length - 1] - 1) * 100, col = fin >= 0 ? 'var(--up)' : 'var(--down)';
   let s = `<line class="zero" x1="${L}" x2="${W - Rr}" y1="${y(1)}" y2="${y(1)}"/>`;
-  s += `<path d="${path(mp)}" style="fill:none;stroke:var(--mk);stroke-width:1.3;stroke-dasharray:4 3"/>`;
-  s += `<path d="${path(sp)}" style="fill:none;stroke:${col};stroke-width:2"/>`;
+  s += `<path d="${path(mp)}" style="fill:none;stroke:var(--mk);stroke-width:1.3;stroke-dasharray:4 3"/><path d="${path(sp)}" style="fill:none;stroke:${col};stroke-width:2"/>`;
   let ys = y(sp[sp.length - 1]), ym = y(mp[mp.length - 1]); if (Math.abs(ys - ym) < GAP) { if (ys < ym) ym = ys + GAP; else ym = ys - GAP; }
   s += `<text class="lab" x="${W - Rr + 6}" y="${ys + 4}" style="fill:${col}">${sgn(fin)}</text><text x="${W - Rr + 6}" y="${ym + 4}">大盘${sgn(fm, 0)}</text>`;
-  const mn1 = Math.min(...sp), dd = (mn1 - 1) * 100;
-  s += `<text x="${L}" y="${H - 3}">${C.d0[mi].slice(5).replace('-', '/')}</text><text x="${W - Rr}" y="${H - 3}" text-anchor="end">${C.d1[mi].slice(5).replace('-', '/')}</text>`;
-  return { svg: `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" role="img" aria-label="一个月里每天的走势">${s}</svg>`, dd };
+  s += `<text x="${L}" y="${H - 3}">${C.d0[mi].replace(/-/g, '/')}</text><text x="${W - Rr}" y="${H - 3}" text-anchor="end">${C.d1[mi].slice(5).replace('-', '/')}</text>`;
+  return `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" role="img" aria-label="一个月里每天的走势">${s}</svg>`;
 }
 
 function drawCards() {
-  const { mi, rows, acts } = G, box = $('#cards');
-  const charts = [];
+  const { rows, acts } = G, box = $('#cards');
   box.innerHTML = rows.map((r, i) => {
-    const c = coOf(r), v = val(r, 'f1'), sec = C.sec[val(r, 'sec')], [bd] = board(c[0], C.d0[mi]);
-    const seen = new Set([G.first[i], ...G.flips[i], ...G.shared]);
-    const sp = dPath(r), dd = (Math.min(...sp) - 1) * 100;
-    const notes = [];
+    const mi = MI[r], c = coOf(r), v = val(r, 'f1'), sec = C.sec[val(r, 'sec')], [bd] = board(c[0], C.d0[mi]);
+    const seen = new Set([G.first[i], ...G.flips[i]]), sp = dPath(r), dd = (Math.min(...sp) - 1) * 100, notes = [];
     if (dd < -3 && v > dd + 3) notes.push(`这个月里最多时跌过 ${Math.abs(dd).toFixed(1)}%。`);
     if (val(r, 'susp') === 1) notes.push('一个月后那天停牌，按停牌前最后的价格计算。');
     if (c[3] < LASTALL) notes.push(`此后于${ymCN(ymAll(c[3]))}退市或被合并，之后按最后一个交易日的价格计。`);
@@ -437,64 +430,131 @@ function drawCards() {
       const o = d.get(r, { mi, open: true }), p = isF(o.p) ? `高于${o.p}%` : '';
       return `<tr class="${seen.has(d.k) ? 'seen' : ''}"><td>${d.nm}</td><td class="v ${isF(o.cv) ? cls(o.cv) : ''}">${o.chart ? esc(o.s) + ' · 最近 ' + o.v : o.v}</td><td class="p">${p}</td></tr>`;
     }).join('')).join('');
-    charts.push(r);
     return `<article class="rc">
       <div class="hd"><span class="lt">股票${LETTER[i]}</span><span class="nm">${esc(c[1])}</span><span class="cd">${c[0]}</span><span class="r ${cls(v)}">${sgn(v)}</span></div>
-      <div class="meta">${esc(sec ? sec[1] : '')} · ${bd} · 你的操作：<b>${actText(acts[i], false)}</b></div>
-      <div class="dchart"></div>${notes.length ? `<p class="note">${notes.join('')}</p>` : ''}
-      <div class="links"><a href="index.html#co=${c[0]}">在地图上看这座城</a><a href="faxian.html#co=${c[0]}">财报小传</a><a href="zhencha.html#co=${c[0]}">查疑点</a></div>
+      <div class="meta"><b>${dateCN(C.d0[mi])}</b> 到 ${dateCN(C.d1[mi])} · ${esc(sec ? sec[1] : '')} · ${bd}<br>你的操作：<b>${actText(acts[i], false)}</b> · 那天收盘价 ${pxOf(r).toFixed(2)} 元</div>
+      <div class="mhist"></div><div class="dchart"></div>${notes.length ? `<p class="note">${notes.join('')}</p>` : ''}
+      <div class="links"><a href="index.html#co=${c[0]}">在地图上看这座城</a><a href="index.html#${C.months[mi]}">那个月的地图</a><a href="faxian.html#co=${c[0]}">财报小传</a><a href="zhencha.html#co=${c[0]}">查疑点</a></div>
       <details ${rows.length === 1 ? 'open' : ''}><summary>当时的二十八项指标（你看到了 ${seen.size} 项）</summary><table class="all">${tbl}</table></details>
     </article>`;
   }).join('');
-  box.querySelectorAll('.dchart').forEach((d, i) => { const w = Math.max(240, Math.min(640, d.clientWidth || 320)); d.innerHTML = dayChart(charts[i], w).svg; });
+  box.querySelectorAll('.rc').forEach((card, i) => {
+    const w = Math.max(240, Math.min(640, card.querySelector('.dchart').clientWidth || 320));
+    card.querySelector('.mhist').innerHTML = miniHist(rows[i], w);
+    card.querySelector('.dchart').innerHTML = dayChart(rows[i], w);
+  });
 }
 
-
+// 一年、三年：每只股票相对它自己同期大盘的走势
 function drawLong() {
-  const { mi, rows } = G, W = wOf('#longPlot', 1000), H = 280, L = 44, Rr = 92, T = 14, B = 26;
-  const series = rows.map(r => mPath(r)), mk = C.mpath[mi].map(q => q === null ? NaN : Math.pow(10, q / 10000));
-  const all = series.flat().concat(mk).filter(isF).concat([1]);
+  const { rows } = G, W = wOf('#longPlot', 1000), H = 280, L = 76, Rr = 96, T = 14, B = 26;
+  const series = rows.map(r => { const a = mPath(r), mk = C.mpath[MI[r]]; return a.map((v, k) => isF(v) && mk[k] !== null ? v / Math.pow(10, mk[k] / 10000) : NaN); });
+  const all = series.flat().filter(isF).concat([1]);
   const lmn = Math.log10(Math.min(...all)), lmx = Math.log10(Math.max(...all)), sp = (lmx - lmn) || 0.1;
   const x = i => L + i / 36 * (W - L - Rr), y = v => T + (lmx - Math.log10(v)) / sp * (H - T - B);
   let s = '';
   [0.1, 0.2, 0.3, 0.5, 0.7, 1, 1.5, 2, 3, 5, 7, 10, 20, 30, 50].filter(v => Math.log10(v) >= lmn - 0.01 && Math.log10(v) <= lmx + 0.01).forEach(v => {
-    s += `<line class="${v === 1 ? 'zero' : 'grid'}" x1="${L}" x2="${W - Rr}" y1="${y(v)}" y2="${y(v)}"/><text x="${L - 6}" y="${y(v) + 4}" text-anchor="end">${v === 1 ? '买入价' : v < 1 ? '−' + Math.round((1 - v) * 100) + '%' : v + '倍'}</text>`;
+    s += `<line class="${v === 1 ? 'zero' : 'grid'}" x1="${L}" x2="${W - Rr}" y1="${y(v)}" y2="${y(v)}"/><text x="${L - 6}" y="${y(v) + 4}" text-anchor="end">${v === 1 ? '和大盘一样' : v < 1 ? '落后' + Math.round((1 - v) * 100) + '%' : '领先' + (v >= 2 ? v + '倍' : Math.round((v - 1) * 100) + '%')}</text>`;
   });
   [[0, '决策日'], [12, '一年'], [24, '两年'], [36, '三年']].forEach(([m, t]) => { s += `<text x="${x(m)}" y="${H - 6}" text-anchor="${m === 0 ? 'start' : 'middle'}">${t}</text>`; });
   s += `<line x1="${x(1)}" x2="${x(1)}" y1="${T}" y2="${H - B}" style="stroke:var(--gold);stroke-dasharray:2 3"/><text x="${x(1) + 4}" y="${T + 8}" style="fill:var(--gold)">一个月后揭晓</text>`;
   const path = a => { let d = '', pen = false; a.forEach((v, i) => { if (!isF(v)) { pen = false; return; } d += `${pen ? 'L' : 'M'}${x(i).toFixed(1)},${y(v).toFixed(1)}`; pen = true; }); return d; };
-  s += `<path d="${path(mk)}" style="fill:none;stroke:var(--mk);stroke-width:1.5;stroke-dasharray:5 4"/>`;
   const ends = [];
   series.forEach((a, i) => {
     s += `<path d="${path(a)}" style="fill:none;stroke:${LINEC[i]};stroke-width:2.2"/>`;
     let k = 36; while (k > 0 && !isF(a[k])) k--; ends.push({ k, v: a[k], t: `${LETTER[i]} ${a[k] >= 1 ? '+' : '−'}${Math.abs(Math.round((a[k] - 1) * 100))}%`, c: LINEC[i] });
   });
-  let km = 36; while (km > 0 && !isF(mk[km])) km--; ends.push({ k: km, v: mk[km], t: `大盘 ${mk[km] >= 1 ? '+' : '−'}${Math.abs(Math.round((mk[km] - 1) * 100))}%`, c: 'var(--mk)' });
   ends.sort((a, b) => y(a.v) - y(b.v)); let last = -99;
-  ends.forEach(e => { let yy = Math.max(y(e.v) + 4, last + 14); last = yy; s += `<text class="lab hp" x="${x(e.k) + 6}" y="${yy}" style="fill:${e.c}">${e.t}</text>`; });
-  $('#longPlot').innerHTML = `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" role="img" aria-label="三年走势">${s}</svg>`;
-  $('#longLegend').innerHTML = rows.map((r, i) => `<span><i style="background:${LINEC[i]}"></i>${LETTER[i]} ${esc(coOf(r)[1])}</span>`).join('') + '<span><i class="dash"></i>大盘（全部A股按市值加权）</span>';
+  ends.forEach(e => { const yy = Math.max(y(e.v) + 4, last + 14); last = yy; s += `<text class="lab hp" x="${x(e.k) + 6}" y="${yy}" style="fill:${e.c}">${e.t}</text>`; });
+  $('#longPlot').innerHTML = `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" role="img" aria-label="相对同期大盘的三年走势">${s}</svg>`;
+  $('#longLegend').innerHTML = rows.map((r, i) => `<span><i style="background:${LINEC[i]}"></i>${LETTER[i]} ${esc(coOf(r)[1])}（${ymCN(C.months[MI[r]])}起）</span>`).join('');
 }
 
-// ------------------------------------------------------------------ 战绩
-function renderRecord() {
-  const rec = loadRec(), rs = rec.rounds, box = $('#record');
-  if (!rs.length) { box.innerHTML = '<p class="prose">还没有战绩。玩一局试试：一局只要两三分钟。</p>'; return; }
-  const S = rs.map(rd => HKEY.map(k => settle(rd.rows, actsOf(rd), k)));
-  const moved = rs.map(rd => rd.acts.some(a => a[0] !== 'hold'));
-  const hz = [0, 1, 2].map(h => {
-    const ok = S.map((s, i) => s[h] && moved[i] ? s[h].eff : NaN).filter(isF);
-    return { n: ok.length, pos: ok.filter(v => v > 0).length, avg: mean(ok) };
+// ------------------------------------------------------------------ 排行榜
+const API = CFG.url && CFG.key ? CFG.url.replace(/\/+$/, '') + '/rest/v1/rpc/' : null;
+async function rpc(fn, args) {
+  const ctl = new AbortController(), tm = setTimeout(() => ctl.abort(), 12000);
+  try {
+    const res = await fetch(API + fn, { method: 'POST', signal: ctl.signal, headers: { 'Content-Type': 'application/json', apikey: CFG.key, Authorization: 'Bearer ' + CFG.key }, body: JSON.stringify(args || {}) });
+    const txt = await res.text();
+    if (!res.ok) { let m = txt; try { m = JSON.parse(txt).message || txt; } catch (e) { /* 原样 */ } throw new Error(m); }
+    return JSON.parse(txt);
+  } finally { clearTimeout(tm); }
+}
+const RANKMSG = { 'too fast': '提交得太快了，过一会儿再试', 'not enough cash': '这一局的交易和规则对不上', 'bad sell': '这一局的交易和规则对不上', 'bad buy': '这一局的交易和规则对不上', 'bad row': '题库版本和服务器对不上，刷新页面再试' };
+let RB = { k: API ? 'wait' : 'off' };
+async function submitRound(rec) {
+  if (!API) { RB = { k: 'off' }; renderRankBox(); return; }
+  RB = { k: 'wait' }; renderRankBox();
+  const items = rec.rows.map((r, i) => ({ r, f: rec.first[i], fl: rec.flips[i], a: rec.acts[i][0], x: rec.acts[i][1], d: rec.acts[i][2], b: rec.acts[i][3] }));
+  try {
+    const o = await rpc('cy_submit', { p: { v: C.v, n: rec.rows.length, pool: rec.pool, cid: cid(), items } });
+    rec.srv = { id: o.id, rank: o.rank, total: o.total, eff: +o.eff }; saveRec();
+    RB = { k: 'ok', id: o.id, secret: o.secret, rank: o.rank, total: o.total, eff: +o.eff, share: null };
+    renderRecord(); loadBoard();
+  } catch (e) {
+    const m = String(e.message || e); RB = { k: 'err', msg: Object.keys(RANKMSG).find(k => m.includes(k)) ? RANKMSG[Object.keys(RANKMSG).find(k => m.includes(k))] : '没连上排行榜服务器', rec };
+  }
+  renderRankBox();
+}
+function renderRankBox() {
+  const box = $('#rankBox'); if (!box) return;
+  if (RB.k === 'off') { box.innerHTML = '<p class="small">排行榜还没开通（要连上服务器）。这一局记在这台设备的“战绩”里。</p>'; return; }
+  if (RB.k === 'wait') { box.innerHTML = '<p class="small">正在登记这一局……</p>'; return; }
+  if (RB.k === 'err') { box.innerHTML = `<p class="small">${RB.msg}，这一局只记在这台设备上。 <button class="linkbtn" id="rbRetry">再试一次</button></p>`; $('#rbRetry').onclick = () => submitRound(RB.rec); return; }
+  let h = `<p class="rk">这一局你的操作带来 <b class="${cls(RB.eff)}">${moneyS(RB.eff)}</b>，在全部 <b>${RB.total.toLocaleString('zh-CN')}</b> 局里排第 <b>${RB.rank.toLocaleString('zh-CN')}</b> 名。</p>`;
+  if (RB.rank <= 100) {
+    if (RB.share === null) h += '<p>进入了前 100 名。要把昵称放到排行榜上吗？</p><div class="nextrow"><button class="btn" id="rbYes">晒战绩</button><button class="btn ghost" id="rbNo">不晒战绩</button></div>';
+    else if (RB.share === 'form') h += `<div class="nickrow"><input id="rbNick" maxlength="12" placeholder="昵称，1–12 个字" autocomplete="nickname"><button class="btn" id="rbGo">上榜</button><button class="linkbtn" id="rbBack">算了</button></div>${RB.err ? `<p class="small">${RB.err}</p>` : ''}`;
+    else if (RB.share === 'yes') h += `<p>已上榜：第 <b>${RB.rank}</b> 名 · <b>${esc(RB.nick)}</b>。 <a href="#paihang">看排行榜</a></p>`;
+    else if (RB.share === 'no') h += '<p class="small">好的，不公开昵称。这一局仍然匿名计入排名。</p>';
+    else if (RB.share === 'late') h += `<p class="small">刚才又有人超过了你，现在是第 ${RB.rank} 名，已经掉出前 100，没能上榜。</p>`;
+  }
+  box.innerHTML = h;
+  const on = (id, f) => { const e = $(id); if (e) e.onclick = f; };
+  on('#rbYes', () => { RB.share = 'form'; renderRankBox(); const e = $('#rbNick'); if (e) e.focus(); });
+  on('#rbNo', () => { RB.share = 'no'; renderRankBox(); });
+  on('#rbBack', () => { RB.share = null; RB.err = ''; renderRankBox(); });
+  on('#rbGo', async () => {
+    const nick = $('#rbNick').value.replace(/[<>&"\u0000-\u001f]/g, '').trim();
+    if (!nick || nick.length > 12) { RB.err = '昵称要 1–12 个字'; renderRankBox(); return; }
+    try {
+      const o = await rpc('cy_share', { p_id: RB.id, p_secret: RB.secret, p_nick: nick });
+      RB.rank = o.rank;
+      if (o.ok) { RB.share = 'yes'; RB.nick = nick; const rd = loadRec().rounds.find(x => x.srv && x.srv.id === RB.id); if (rd) { rd.srv.nick = nick; saveRec(); } loadBoard(); }
+      else RB.share = 'late';
+    } catch (e) { RB.err = '没连上服务器，再试一次'; }
+    renderRankBox();
   });
+}
+
+let BOARD = null;
+async function loadBoard() {
+  const box = $('#board');
+  if (!API) { box.innerHTML = '<p class="prose">排行榜要连上服务器才能用，目前还没开通。你的每一局仍会记在下面的“战绩”里。</p>'; return; }
+  if (!BOARD) box.innerHTML = '<p class="small">正在读取排行榜……</p>';
+  try { BOARD = await rpc('cy_top', {}); } catch (e) { box.innerHTML = '<p class="small">没连上排行榜服务器。 <button class="linkbtn" id="bdRetry">再试一次</button></p>'; $('#bdRetry').onclick = loadBoard; return; }
+  const mine = new Set(loadRec().rounds.filter(x => x.srv).map(x => x.srv.id));
+  const top = BOARD.top || [];
+  box.innerHTML = `<p class="prose">已经有 <b>${(+BOARD.players).toLocaleString('zh-CN')}</b> 位玩家玩了 <b>${(+BOARD.total).toLocaleString('zh-CN')}</b> 局。</p>` +
+    (top.length ? `<div class="scroll"><table class="res lb"><thead><tr><th>名次</th><th>昵称</th><th>操作带来</th><th>账户盈亏</th><th>几只</th><th>日期</th></tr></thead><tbody>${top.map(t =>
+      `<tr class="${mine.has(t.id) ? 'me' : ''}"><td>${t.rank}</td><td>${t.nick ? esc(t.nick) : '<span class="small">没晒</span>'}${mine.has(t.id) ? ' <span class="small">（你）</span>' : ''}</td><td class="${cls(+t.eff)}">${moneyS(+t.eff)}</td><td class="${cls(+t.pnl)}">${moneyS(+t.pnl)}</td><td>${t.n}</td><td>${t.d}</td></tr>`).join('')}</tbody></table></div>` : '<p class="small">还没有人上榜。</p>');
+}
+
+// ------------------------------------------------------------------ 战绩（只在这台设备）
+function renderRecord() {
+  const rs = loadRec().rounds.filter(rd => rd.sh0), box = $('#record');
+  if (!rs.length) { box.innerHTML = '<p class="prose">还没有战绩。玩一局试试：一局只要两三分钟。</p>'; return; }
+  const S = rs.map(rd => [0, 1, 2].map(h => settle(rd.rows, rd.sh0, actsOf(rd), h)));
+  const moved = rs.map(rd => rd.acts.some(a => a[2]));
+  const hz = [0, 1, 2].map(h => { const ok = S.map((s, i) => s[h] && moved[i] ? s[h].eff : NaN).filter(isF); return { n: ok.length, pos: ok.filter(v => v > 0).length, avg: mean(ok) }; });
   const both = S.map((s, i) => moved[i] && s[0] && s[1] && Math.abs(s[0].eff) > 1 && Math.abs(s[1].eff) > 1 ? [s[0].eff, s[1].eff] : null).filter(Boolean);
   const same = both.filter(([a, b]) => (a > 0) === (b > 0)).length;
-  // 按动作分组：你加仓、不动、减仓的股票，比大盘多涨多少
-  const G3 = { buy: [[], [], []], hold: [[], [], []], sell: [[], [], []] };
-  const cnt = {};
+  const G3 = { buy: [[], [], []], hold: [[], [], []], sell: [[], [], []] }, cnt = {};
   let stocks = 0;
   rs.forEach(rd => rd.rows.forEach((r, i) => {
-    stocks++; const a = rd.acts[i][0];
-    HKEY.forEach((k, h) => { const v = val(r, k), m = mktOf(rd.mi, h); if (isF(v) && isF(m)) G3[a][h].push(v - m); });
+    stocks++; const a = rd.acts[i][2] ? rd.acts[i][0] : 'hold';
+    HKEY.forEach((k, h) => { const v = val(r, k), m = mktOf(MI[r], h); if (isF(v) && isF(m)) G3[a][h].push(v - m); });
     (rd.flips[i] || []).forEach(k => { cnt[k] = (cnt[k] || 0) + 1; });
   }));
   const tile = (v, k, c) => `<div class="tile"><div class="v ${c || ''}">${v}</div><div class="k">${k}</div></div>`;
@@ -502,25 +562,25 @@ function renderRecord() {
   const grpRow = (a, t) => `<tr><td>${t}</td>${[0, 1, 2].map(h => { const g = G3[a][h]; return g.length ? `<td class="${cls(mean(g))}">${sgn(mean(g)).replace('%', '')}<div class="small">${g.length} 只</div></td>` : '<td class="small">—</td>'; }).join('')}</tr>`;
   const top = Object.entries(cnt).sort((a, b) => b[1] - a[1]).slice(0, 6);
   const recent = rs.slice(-8).reverse().map((rd, j) => {
-    const s = S[rs.length - 1 - j];
-    return `<tr><td>${ymCN(C.months[rd.mi])}</td><td style="text-align:left;white-space:normal">${rd.rows.map(r => esc(coOf(r)[1])).join('、')}</td>${s.map(x => x ? `<td class="${cls(x.eff)}">${moneyS(x.eff)}</td>` : '<td class="small">还没到</td>').join('')}</tr>`;
+    const s = S[rs.length - 1 - j], d = new Date(rd.ts);
+    return `<tr><td>${d.getMonth() + 1}月${d.getDate()}日</td><td style="text-align:left;white-space:normal">${rd.rows.map(r => `${esc(coOf(r)[1])}<span class="small">（${C.months[MI[r]].replace('-', '.')}）</span>`).join('、')}</td>${s.map(x => x ? `<td class="${cls(x.eff)}">${moneyS(x.eff)}</td>` : '<td class="small">还没到</td>').join('')}<td>${rd.srv ? `第 ${rd.srv.rank} 名${rd.srv.nick ? ' · ' + esc(rd.srv.nick) : ''}` : '<span class="small">—</span>'}</td></tr>`;
   }).join('');
   box.innerHTML = `
-    <p class="prose">已经玩了 <b>${rs.length}</b> 局，看过 <b>${stocks}</b> 只股票。“操作带来”只统计动过仓位的局${both.length >= 3 ? `；在一个月和一年都能结算的 ${both.length} 局里，两者方向一致的只有 <b>${Math.round(same / both.length * 100)}%</b>` : ''}。</p>
+    <p class="prose">在这台设备上玩了 <b>${rs.length}</b> 局，看过 <b>${stocks}</b> 只股票。“操作带来”只统计动过仓位的局${both.length >= 3 ? `；在一个月和一年都能结算的 ${both.length} 局里，两者方向一致的只有 <b>${Math.round(same / both.length * 100)}%</b>` : ''}。</p>
     <div class="tiles">${hzT}</div>
-    <div class="fig"><h3>你加仓、不动、减仓的股票，各自比大盘多涨多少</h3>
+    <div class="fig"><h3>你加仓、不动、减仓的股票，各自比同期大盘多涨多少</h3>
       <p class="sub">单位是百分点（含分红）。如果你的判断有用，加仓那一行应当长期高于减仓那一行；看一年、三年，比看一个月可靠。</p>
       <div class="scroll"><table class="res"><thead><tr><th></th><th>一个月</th><th>一年</th><th>三年</th></tr></thead><tbody>${grpRow('buy', '你加仓的')}${grpRow('hold', '你没动的')}${grpRow('sell', '你减仓的')}</tbody></table></div></div>
     ${top.length ? `<div class="fig"><h3>你最常翻的牌</h3><p class="sub">不含每只股票随机给的那一项。</p><p class="prose">${top.map(([k, c]) => `${INDK[k] ? INDK[k].nm : k} <b>${c}</b> 次`).join(' · ')}</p></div>` : ''}
-    <div class="fig"><h3>最近几局</h3><div class="scroll"><table class="res"><thead><tr><th>那一天</th><th>股票</th><th>操作带来·一个月</th><th>一年</th><th>三年</th></tr></thead><tbody>${recent}</tbody></table></div></div>
-    <p class="small" style="margin-top:14px"><button class="linkbtn" id="clr">清空战绩</button></p>`;
+    <div class="fig"><h3>最近几局</h3><div class="scroll"><table class="res"><thead><tr><th>玩的时间</th><th style="text-align:left">股票（那个月）</th><th>操作带来·一个月</th><th>一年</th><th>三年</th><th>排名</th></tr></thead><tbody>${recent}</tbody></table></div></div>
+    <p class="small" style="margin-top:14px"><button class="linkbtn" id="clr">清空这台设备上的战绩</button>（排行榜上的记录不受影响）</p>`;
   $('#clr').onclick = function () {
     if (this.dataset.sure) { loadRec().rounds = []; saveRec(); renderRecord(); return; }
     this.dataset.sure = 1; this.textContent = '确定清空？再点一次';
   };
 }
 
-// ------------------------------------------------------------------ 开头的“运气”表
+// ------------------------------------------------------------------ 开头的“运气”表、指标说明、口径
 function renderLuck() {
   const grp = { good: [[], [], []], bad: [[], [], []] };
   for (let r = 0; r < R; r++) {
@@ -532,35 +592,32 @@ function renderLuck() {
   $('#luckTable').innerHTML = `<table><thead><tr><th></th><th>一个月后</th><th>一年后</th><th>三年后</th></tr></thead><tbody>
     <tr><td>好公司<div class="small">五年平均回报率15%以上，没有疑点</div></td>${grp.good.map(cell).join('')}</tr>
     <tr><td>满身疑点<div class="small">财报侦探亮了两个以上</div></td>${grp.bad.map(cell).join('')}</tr></tbody></table>
-    <p class="small" style="margin:6px 0 0">样本：题库里随机抽出的 ${grp.good[0].length + grp.bad[0].length} 个“公司 × 月份”，超额是比大盘多涨的百分点。</p>`;
+    <p class="small" style="margin:6px 0 0">样本：题库里随机抽出的 ${(grp.good[0].length + grp.bad[0].length).toLocaleString('zh-CN')} 个“公司 × 月份”，超额是比同期大盘多涨的百分点。</p>`;
 }
-
-function renderGlossary() {
-  $('#glossary').innerHTML = IND.map(d => `<li><b>${d.nm} <span class="small">· ${d.cat}</span></b>${d.hint}</li>`).join('');
-}
+function renderGlossary() { $('#glossary').innerHTML = IND.map(d => `<li><b>${d.nm} <span class="small">· ${d.cat}</span></b>${d.hint}</li>`).join(''); }
 function renderFine() {
   const big = POOL.reduce((s, p) => s + p.big.length, 0), all = POOL.reduce((s, p) => s + p.all.length, 0);
   $('#fineprint').innerHTML = [
-    `题库：${ymCN(C.months[0])}到${ymCN(C.months[C.months.length - 1])}，每个月最后一个交易日是一个决策日，共 ${C.months.length} 个。每个决策日从“上市满一年、当天有交易”的公司里随机抽 30 家（“全部A股”用这些，共 ${all.toLocaleString('zh-CN')} 道），再从当天市值前 300 名里随机抽 15 家（“只看大公司”用市值前 300 名里的，共 ${big.toLocaleString('zh-CN')} 道）。行情数据截至 ${dateCN(C.lastDay)}。`,
+    `题库：${ymCN(C.months[0])}到${ymCN(C.months[C.months.length - 1])}，每个月最后一个交易日是一个决策日，共 ${C.months.length} 个。每个决策日从“上市满一年、当天有交易”的公司里随机抽 30 家（“全部A股”用这些，共 ${all.toLocaleString('zh-CN')} 道），再从当天市值前 300 名里随机抽 15 家（“只看大公司”用市值前 300 名里的，共 ${big.toLocaleString('zh-CN')} 道）。每只股票各自随机抽一个决策日，同一局里不会出现同一家公司。行情数据截至 ${dateCN(C.lastDay)}。`,
     '指标只用当天能看到的数据：1–4 月用前年年报，5–12 月用上一年年报（年报最晚 4 月 30 日披露）。市盈率、市净率、市销率按最近一期年报算，是“静态”口径，不是行情软件常用的滚动市盈率（TTM）。总市值同地图的口径，包含 H 股等境外股份并按 A 股价格折算。“高于当天 X% 的公司”是在当天全部合格公司里的百分位。',
-    '回报用复权收盘价，等于把分红再买成股票。一个月后停牌的，按停牌前最后的价格计；后来退市的，按最后一个交易日的价格计（实际损失通常更大）。“大盘”是当天地图上全部公司按市值加权、买入后不再调整，同样含分红；它不是沪深300或上证指数。',
-    '交易按决策日收盘价成交，买卖各扣成交额的 0.1%（佣金、印花税等的粗略合计，实际费率随年份不同），现金不计利息。涨停、跌停按“收在最高价（最低价）且涨跌幅达到板块限制”判断，ST 股 ±5% 的限制没有识别。',
-    '公司名称用现名或退市前的最后名称；行业是当时所属的“国”。年报、市值的来源和已知问题见地图页的“资料与边界”。颜色按行情软件的习惯：红涨绿跌。',
-    '一个月的结果多半是运气，一局的输赢不说明判断的对错。历史统计不代表未来。指标说明由 AI（Claude）编写，会错，也会过时。战绩只保存在这台设备的浏览器里。',
+    '账户：总资产 100 万元。开局时约 50 万元按整手（100 股）买成几只股票，每只买到最接近“50 万 ÷ 只数”的整手数，至少一手，所以各只不完全一样多；其余是现金。买卖都按整手、在各自决策日的收盘价成交，各扣成交额的 0.1%（佣金、印花税等的粗略合计）；现金不计利息。几只股票的日期不同，账户只是把它们的盈亏加在一起。',
+    '回报用复权收盘价，等于把分红再买成股票。一个月后停牌的，按停牌前最后的价格计；后来退市的，按最后一个交易日的价格计（实际损失通常更大）。“同期大盘”是那一天地图上全部公司按市值加权、买入后不再调整，同样含分红；它不是沪深300或上证指数。涨停、跌停按“收在最高价（最低价）且涨跌幅达到板块限制”判断，ST 股 ±5% 的限制没有识别。',
+    '排行榜按“你的操作带来”排名：一动不动是 0，加减仓让账户多赚或少赚的钱才算数，抽到哪只股票的运气被扣掉了。每一局结束后，这一局的题号、你翻了哪些指标、买卖了多少和结果，会连同浏览器里随机生成的编号匿名上传到排行榜服务器（Supabase），不含姓名、手机号等个人信息；服务器按题库答案重新计算盈亏后再排名。只有进入前 100 名并选择“晒战绩”时，你填的昵称才会公开。',
+    '一个月的结果多半是运气，一局的输赢不说明判断的对错。历史统计不代表未来。指标说明由 AI（Claude）编写，会错，也会过时。公司名称用现名或退市前的最后名称；颜色按行情软件的习惯：红涨绿跌。',
   ].map(t => `<li>${t}</li>`).join('');
 }
 
 // ------------------------------------------------------------------ 启动
 function fromHash() {
-  const m = /^#g=(\d+)\.([\d-]+)$/.exec(location.hash);
+  const m = /^#g=([\d-]+)$/.exec(location.hash);
   if (!m) return false;
-  const mi = +m[1], rows = m[2].split('-').map(Number);
-  if (!(mi >= 0 && mi < C.months.length) || !rows.length || rows.length > 5 || rows.some(r => !(r >= 0 && r < R) || MI[r] !== mi) || new Set(rows).size !== rows.length) return false;
-  newRound(mi, rows); return true;
+  const rows = m[1].split('-').map(Number);
+  if (!rows.length || rows.length > 5 || rows.some(r => !(r >= 0 && r < R)) || new Set(rows.map(r => coOf(r)[0])).size !== rows.length) return false;
+  newRound(rows); return true;
 }
-initSetup(); renderLuck(); renderRecord(); renderGlossary(); renderFine();
+initSetup(); renderLuck(); renderRecord(); renderGlossary(); renderFine(); loadBoard();
 fromHash();
 window.addEventListener('hashchange', fromHash);
 let rz = 0;
-window.addEventListener('resize', () => { clearTimeout(rz); rz = setTimeout(() => { if (G && G.done && !$('#reveal').hidden) { drawHist(); drawCards(); drawLong(); } }, 200); });
+window.addEventListener('resize', () => { clearTimeout(rz); rz = setTimeout(() => { if (G && G.done && !$('#reveal').hidden) { drawCards(); drawLong(); } }, 200); });
 })();

@@ -36,6 +36,7 @@ H = os.path.dirname(os.path.abspath(__file__))
 R = os.path.join(H, '..')
 Q = os.path.join(H, 'input', 'qlib_bin') + '/'
 rng = np.random.default_rng(20261121)
+DATA_VERSION = 1   # 题库版本：重新生成的题目和旧的不同时加一（排行榜服务器按版本存答案，见 make_chiyou_sql.py）
 
 # ---------------------------------------------------------------- 地图数据
 src = open(os.path.join(R, 'assets', 'data.js'), encoding='utf-8').read()
@@ -316,7 +317,7 @@ for t in DM:
 R_ = len(rows)
 print('题目行', R_, '公司', len(co_out))
 b64 = lambda a, dt: base64.b64encode(np.asarray(a, dt).tobytes()).decode()
-out = dict(v=1, m0=T0, F=[[k, ENC[k][0], ENC[k][1]] for k in KEYS], P=PKEYS, R=R_,
+out = dict(v=DATA_VERSION, m0=T0, F=[[k, ENC[k][0], ENC[k][1]] for k in KEYS], P=PKEYS, R=R_,
            rows=b64(rows, '<i2'), pct=b64(pcts, 'u1'), ni=b64(nis, '<i2'), mp=b64(mps, '<i2'), dp=b64(dps, '<i2'),
            co=co_out, sec=[[s[0], s[1]] for s in SECT], sea=[round(x, 1) for x in SEA.tolist()], seaM0=MONTHS[0],
            fy0=FY0, last=MONTHS[T_LAST], lastDay=str(CAL[ME[T_LAST]].date()), **mon)

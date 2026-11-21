@@ -28,6 +28,7 @@ node candidates.js           # 9. 2023年1月起带候选国的版图（从原�
 python3 make_quality.py      # 10. 2010–2025年报摘要、历年年末复权价 → ../assets/quality.js
 python3 make_hk.py           # 10b. 港股快照（hk/*.csv）→ ../assets/hk.js
 python3 make_chiyou.py       # 10c. “持有一月”题库：逐月抽题、算指标和此后的回报 → ../assets/chiyou-data.js
+python3 make_chiyou_sql.py   # 10d. 排行榜后端：chiyou-schema.sql + 题库答案表 → chiyou-supabase.sql（在 Supabase 的 SQL Editor 里运行）
 python3 make_chars.py        # 11. 统计页面和数据用字
 python3 make_fonts.py        # 12. 裁剪字体 → ../assets/fonts/*.woff2
 python3 make_zip.py          # 13. 打包离线版 → ../download/agu-jiangyu-site.zip
@@ -44,6 +45,7 @@ python3 make_zip.py          # 13. 打包离线版 → ../download/agu-jiangyu-s
 - `candidates.js`：把候选国的公司从原来的国里划出，按 `export.py` 的规则重新选城，再用 `layout.js` 的算法从2022年12月的版图接续算到最后一个月，所以其余国家的位置基本不动。
 - `make_quality.py`：从三大报表里取每家公司每年的营收、归母净利润、归母净资产、经营现金流、资产负债率、商誉和研发费用，从 qlib 的复权收盘价里取每年12月末、上市首月和最后一个月的数值，量化后写成 base64（格式写在脚本开头的注释里）。旧格式的“净利润”就是归母净利润，新格式另有“归属于母公司所有者的净利润”一项，脚本优先取后者。数据集里的 `free_cash_flow`、`capital_expenditure` 两个字段其实是经营现金流和投资现金流净额，没有使用。
 - `make_chiyou.py`：决策日是每个月最后一个交易日，从2013年5月到 `data.js` 最后一个月的前一个月。每个决策日从“上市满一年、当天有交易”的公司里随机抽30家，再从市值前300名里抽15家；算28项指标（只用当天能看到的数据，年报按4月30日的披露期限取）、它们在当天全部合格公司里的百分位，以及此后一个月、一年、三年的含分红回报、当月每日走势和此后37个月的走势。格式写在脚本开头的注释里；指标的文字说明在 `../assets/chiyou.js` 里。
+- `chiyou-schema.sql`、`make_chiyou_sql.py`、`chiyou-supabase.sql`：“持有一月”排行榜的后端。`chiyou-schema.sql` 是手写的建表和函数（cy_submit 按题库答案重算盈亏并排名、cy_share 晒战绩、cy_top 读前100名），`make_chiyou_sql.py` 把它和题库答案表（题号、股价、一个月后的回报、涨跌停，取自 `chiyou-data.js`）合成 `chiyou-supabase.sql`。重新生成题库后，要把 `make_chiyou.py` 里的题库版本号加一，重跑 10c、10d，并在 Supabase 里再运行一次 `chiyou-supabase.sql`；旧版本的答案保留，旧对局不受影响。
 - `make_hk.py`：读 `hk/ah_YYYYMMDD.csv`（A+H公司的两地股价，从经济通“AH股表现”页抄录，脚本用页面给出的溢价逐行校验）和 `hk/hk_YYYYMMDD.csv`（港股大公司的股价、市值、周息率、市盈率），加上脚本里手工标注的公司类型、所属的国、股权结构（W/V/S）、是否在港股通、分类，生成 `../assets/hk.js`。更新快照时换掉两个 CSV、改脚本开头的日期和汇率即可。
 - “财报侦探”的卷宗、附注线索，“港股通”的规则、暗礁和分类说明写在 `../assets/zhencha.js`、`../assets/ganggu.js` 和对应的 html 里，不由脚本生成。
 - “发现好公司”页里的前沿卡片（学科、节点、判断）和高校专业数字写在 `../assets/faxian.js` 里，不由脚本生成。

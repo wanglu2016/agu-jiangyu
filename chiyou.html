@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>持有一月 · A股疆域图</title>
-<meta name="description" content="用真实历史练眼力的小游戏：系统从2013–2026年随机抽出一天和几只股票，隐去名字和日期。你最多翻开五项指标，决定加仓、减仓还是不动，一个月后揭晓盈亏，再往后看一年、三年。">
+<meta name="description" content="用真实历史练眼力的小游戏：100万元的账户，几只股票各自来自2013–2026年里随机的一天，隐去名字和日期。每只最多翻开五项指标，决定加仓、减仓还是不动，一个月后揭晓，和各自同期的大盘比，再往后看一年、三年；进入前100名可以晒战绩。">
 <meta property="og:title" content="持有一月 · 用真实历史练眼力">
 <meta property="og:description" content="看不到名字，只能翻五张牌。一个月后揭晓：你的判断，和运气各占多少。">
 <meta property="og:image" content="assets/preview-chiyou.jpg">
@@ -210,6 +210,20 @@ table.res th { font-weight: 500; color: var(--fg-3); font-size: 12.5px; }
 table.res th:first-child, table.res td:first-child { text-align: left; padding-left: 0; }
 table.res tr.sum td { font-weight: 700; border-top: 1px solid var(--line-2); }
 .scroll { overflow-x: auto; }
+.rankbox { margin: 0 0 18px; padding: 12px 16px; border: 1px solid var(--line-2); border-radius: 12px; background: var(--card); font-size: 14.5px; }
+.rankbox:empty { display: none; }
+.rankbox p { margin: 0 0 6px; }
+.rankbox p:last-child { margin-bottom: 0; }
+.rankbox .rk { font-size: 16px; }
+.rankbox .nextrow { margin: 8px 0 0; }
+.nickrow { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin: 8px 0 0; }
+.nickrow input { border: 1px solid var(--line-2); background: var(--panel); border-radius: 10px; padding: 9px 12px; font-size: 16px; width: 12em; max-width: 100%; }
+table.res.lb tr.me td { background: var(--hl); }
+table.res.lb th:nth-child(2), table.res.lb td:nth-child(2) { text-align: left; }
+.mhist { margin: 4px 0 2px; }
+.mhist svg text, .dchart svg text { font-size: 11px; fill: var(--fg-3); font-family: var(--sans); }
+.mhist svg text.lab, .dchart svg text.lab { fill: var(--fg); font-weight: 700; font-size: 12px; }
+.dchart .zero { stroke: var(--line-2); }
 .again { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; margin: 22px 0 0; }
 #copied { font-size: 13px; color: var(--malachite); }
 
@@ -257,7 +271,7 @@ footer p { margin: 14px 0 0; }
 <header id="bar">
   <a class="home" href="index.html"><span>A股疆域图</span><b>持有一月</b></a>
   <nav aria-label="本页">
-    <a href="#kaiju">开局</a><a href="#zhanji">战绩</a><a href="#zhibiao">指标</a><a href="#koujing">口径</a>
+    <a href="#kaiju">开局</a><a href="#paihang">排行</a><a href="#zhanji">战绩</a><a href="#zhibiao">指标</a><a href="#koujing">口径</a>
   </nav>
   <a class="go" href="index.html">打开地图</a>
 </header>
@@ -267,7 +281,7 @@ footer p { margin: 14px 0 0; }
     <div>
       <p class="kick">用真实历史练眼力 · 一个小游戏</p>
       <h1>持有一月</h1>
-      <p class="lede">系统从 <b>2013–2026 年</b>里随机抽出一天，给你一个 <b>10 万元</b>的账户，<b>一半</b>已经买成了几只股票。你看不到公司的名字，也不知道是哪一天，只能给每只股票<b>翻开最多五项指标</b>，然后决定加仓、减仓还是不动。<b>一个月后</b>揭晓盈亏、名字和日期，再往后看一年、三年。</p>
+      <p class="lede">你有一个 <b>100 万元</b>的账户：大约一半是现金，另一半差不多平均地买成了几只股票。每只股票来自 <b>2013–2026 年</b>里随机的一天，你看不到名字和日期，只能<b>翻开最多五项指标</b>，然后决定加仓、减仓还是不动；手里的现金<b>全部</b>可以拿来加仓。<b>一个月后</b>揭晓，每只和它自己同期的大盘比，再往后看一年、三年。</p>
     </div>
     <div class="luck" id="luck">
       <h2>一个月的输赢，多半是运气</h2>
@@ -281,7 +295,7 @@ footer p { margin: 14px 0 0; }
 <main>
   <section class="sec" id="kaiju">
     <h2>开局</h2>
-    <p class="sub">每局的几只股票来自同一天。指标都是那一天能看到的数字：年报按当时已经披露的最近一期，价格到那天收盘为止。</p>
+    <p class="sub">每只股票各自来自随机的一天，这样输赢不取决于某一个月大盘的涨跌。指标都是那一天能看到的数字：年报按当时已经披露的最近一期，价格到那天收盘为止。</p>
     <div class="setup">
       <div>
         <div class="opt"><div class="k">账户里现在持有几只股票</div>
@@ -296,10 +310,11 @@ footer p { margin: 14px 0 0; }
         <p class="small" id="resume" hidden></p>
       </div>
       <ol class="rules">
-        <li data-n="一"><b>账户。</b>总资金 10 万元，股票仓位 50%，平均分在几只股票上；另外 50% 是现金，也平均分给每只股票，作为它可以加仓的额度。</li>
-        <li data-n="二"><b>翻牌。</b>每只股票先随机亮出一项指标，你还可以从二十多项里再翻最多五项，一项一项地翻，翻够了随时可以停。大环境的指标翻过一次，后面几只会自动显示。</li>
-        <li data-n="三"><b>交易。</b>卖出按这只股票持仓的比例，买入按它分到的那份现金的比例，在那天收盘价成交，买卖各扣 0.1% 费用。涨停封板的买不进，跌停封板的卖不出。</li>
-        <li data-n="四"><b>揭晓。</b>一个月后（下个月最后一个交易日）算盈亏，拆成“原来的持仓”和“你的操作”两部分，并和大盘比；然后告诉你它们是谁、那天是哪天，以及一年、三年后它们走到了哪里。</li>
+        <li data-n="一"><b>账户。</b>总资产 100 万元。大约 50 万元按整手（100 股）平均买成几只股票，股价不同，所以各只不完全一样多；其余是可用现金。</li>
+        <li data-n="二"><b>翻牌。</b>每只股票先随机亮出一项指标，你还可以从二十多项里再翻最多五项，一项一项地翻，翻够了随时可以停。</li>
+        <li data-n="三"><b>交易。</b>卖出按持仓的比例，买入按<b>当时全部可用现金</b>的比例，都按整手、在那天收盘价成交，买卖各扣 0.1% 费用。前面卖出的钱后面可以用：卖光前四只，最后一只几乎可以满仓。涨停封板的买不进，跌停封板的卖不出。</li>
+        <li data-n="四"><b>揭晓。</b>每只股票各自持有一个月（到它下个月最后一个交易日），盈亏拆成“原来的持仓”和“你的操作”两部分，每只和它自己同期的大盘比；再告诉你它们是谁、是哪一天，以及一年、三年后走到了哪里。</li>
+        <li data-n="五"><b>排行。</b>按“你的操作带来”排名：一动不动是 0，加减仓多赚或少赚的钱才算数。每局会匿名记录；进入所有局的前 100 名，可以选择晒战绩、留个昵称。</li>
       </ol>
     </div>
   </section>
@@ -307,9 +322,15 @@ footer p { margin: 14px 0 0; }
   <section class="sec" id="play" hidden></section>
   <section class="sec" id="reveal" hidden></section>
 
+  <section class="sec" id="paihang">
+    <h2>排行榜</h2>
+    <p class="sub">所有玩过的局，按“你的操作带来”排名的前 100 名。一动不动是 0；抽到哪只股票的运气被扣掉了，只算你加减仓的结果。只有选择晒战绩的，才显示昵称。</p>
+    <div id="board"></div>
+  </section>
+
   <section class="sec" id="zhanji">
     <h2>战绩</h2>
-    <p class="sub">只保存在这台设备的浏览器里。一个月后的输赢看个热闹；一年、三年后的结果，才更接近你的判断本身。</p>
+    <p class="sub">这台设备上玩过的局。一个月后的输赢看个热闹；一年、三年后的结果，才更接近你的判断本身。</p>
     <div id="record"></div>
   </section>
 
@@ -335,6 +356,7 @@ footer p { margin: 14px 0 0; }
 </footer>
 
 <script src="assets/chiyou-data.js"></script>
+<script src="assets/chiyou-config.js"></script>
 <script src="assets/chiyou.js"></script>
 </body>
 </html>
