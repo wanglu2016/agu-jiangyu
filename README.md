@@ -7,7 +7,8 @@
 **在线体验 · 发现好公司（从学科、产业、公司、价格筛四遍）：** https://wanglu2016.github.io/agu-jiangyu/faxian.html
 **在线体验 · 财报侦探（财务指标与财报里的线索）：** https://wanglu2016.github.io/agu-jiangyu/zhencha.html
 **在线体验 · 港股通（从港股通里挑公司）：** https://wanglu2016.github.io/agu-jiangyu/ganggu.html
-**使用讲解视频（4分38秒）：** https://wanglu2016.github.io/agu-jiangyu/video.html （录制于加入候选国、海平面和后面四个页面之前）
+**在线体验 · 持有一月（用真实历史练眼力的小游戏）：** https://wanglu2016.github.io/agu-jiangyu/chiyou.html
+**使用讲解视频（4分38秒）：** https://wanglu2016.github.io/agu-jiangyu/video.html （录制于加入候选国、海平面和后面五个页面之前）
 
 ![A股疆域图截图](assets/preview.jpg)
 
@@ -18,6 +19,8 @@
 ![财报侦探截图](assets/preview-zhencha.jpg)
 
 ![港股通截图](assets/preview-ganggu.jpg)
+
+![持有一月截图](assets/preview-chiyou.jpg)
 
 ## 能做什么
 
@@ -97,9 +100,25 @@
 
 港股快照只收录了两百多对A+H公司和四十多家港股大公司，不是港股通的全部名单；数字会过时，**不构成投资建议**。
 
+## 持有一月：用真实历史练眼力
+
+[持有一月](https://wanglu2016.github.io/agu-jiangyu/chiyou.html)是第六个页面，一个小游戏。前五页是课本，这一页是练习册：看到行情软件上的一个数字，能不能想到它在什么情况下会骗人，下一眼该看哪一行。
+
+| 步骤 | 做什么 |
+|---|---|
+| 开局 | 系统从2013年5月到2026年9月里随机抽出一天，给你一个10万元的账户，一半已经平均买成了1–5只股票（只数自己选，可以只从当时市值前300名里抽）。名字和日期都藏起来 |
+| 翻牌 | 每只股票先随机亮出一项指标，再从28项里自己翻最多5项：行业、市值、股价、近期涨跌、波动、成交、市盈率（静态）、市盈率在自己五年里的位置、市净率、净资产收益率、近十年利润、利润含金量、财报疑点、海平面……翻开后显示它在当天全部A股里的位置，和“这个数字怎么会骗人”的提示 |
+| 交易 | 卖出按持仓的比例，买入按这只股票分到的那份现金的比例，在那天收盘价成交，扣0.1%费用；涨停封板的买不进，跌停封板的卖不出 |
+| 揭晓 | 一个月后的盈亏，拆成“原来的持仓”和“你的操作”两部分，和大盘比；公布名字、日期、当月全部A股的涨跌分布、每天的走势和当时的28项指标；再往后看一年、三年 |
+| 战绩 | 只存在自己的浏览器里：你加仓、不动、减仓的股票，一个月、一年、三年后各比大盘多涨多少；你最常翻哪几张牌 |
+
+为什么偏偏只给一个月：在题库里，“五年平均回报率15%以上、没有疑点”的公司，一个月后跑赢大盘的比例是46%，“财报疑点两个以上”的公司是47%，几乎分不出高下；三年后是40%对36%，比大盘多涨的中位数是−13对−20个百分点（页面上是实时算的）。一局的输赢多半是运气，要看的是很多局以后，你的操作一年、三年后还站不站得住。
+
+题库共161个决策日、7,225道题、3,174家公司（含后来退市的）。指标只用当天能看到的数据，回报含分红；颜色按行情软件的习惯，红涨绿跌。“这个数字怎么会骗人”的提示由 AI（Claude）编写，**不构成投资建议**。
+
 ## 下载
 
-- **离线版网页（约7 MB）：** [agu-jiangyu-site.zip](https://github.com/wanglu2016/agu-jiangyu/raw/main/download/agu-jiangyu-site.zip)。解压后双击 `index.html`（地图）、`guanchao.html`（观潮）、`faxian.html`（发现好公司）、`zhencha.html`（财报侦探）或 `ganggu.html`（港股通）即可使用，不需要联网或安装任何软件。
+- **离线版网页（约7 MB）：** [agu-jiangyu-site.zip](https://github.com/wanglu2016/agu-jiangyu/raw/main/download/agu-jiangyu-site.zip)。解压后双击 `index.html`（地图）、`guanchao.html`（观潮）、`faxian.html`（发现好公司）、`zhencha.html`（财报侦探）、`ganggu.html`（港股通）或 `chiyou.html`（持有一月）即可使用，不需要联网或安装任何软件。
 - **讲解视频（46 MB）：** [agu-jiangyu-guide.mp4](https://github.com/wanglu2016/agu-jiangyu/raw/main/video/agu-jiangyu-guide.mp4)，也可以在[视频页](https://wanglu2016.github.io/agu-jiangyu/video.html)点“下载视频”。
 - **全部源代码：** 页面右上角绿色的 **Code → Download ZIP**。
 
@@ -118,6 +137,7 @@
 - **持股回报：** 用复权收盘价计算，等于把分红再买成股票，只在每年12月末和最后一个月取值；它和“市值变成了几倍”不是一回事，后者还包含增发和资产注入。“城基”一章只统计今天还在图上的公司，回报率低的那几档实际更差。
 - **学科与前沿：** 前沿的公司名单沿用候选国、观察名单和科技环节分组，学科与政策节点按公开报道的日期标注；高校专业数字来自教育部历年公布的本科专业备案和审批结果及公开报道，国家统计局的研发强度来自《2025年全国科技经费投入统计公报》。
 - **财报侦探：** 疑点用的是观察期五年的年报：利润年年为正但经营现金流合计不到利润一半、有亏损年份、外部融资（期末净资产 − 期初净资产 − 五年利润）超过期初净资产、资产负债率70%以上（房地产除外）；“侦查”另加商誉超过净资产30%。杜邦拆解的总资产由归母净资产和资产负债率推算。净回馈 = 累计归母净利润 − 归母净资产的增加，约等于分红加回购减新募股本。卷宗案情来自证监会处罚决定、法院判决和公开报道。
+- **持有一月：** 决策日是每个月最后一个交易日（2013年5月–2026年9月），每个决策日从“上市满一年、当天有交易”的公司里随机抽30家，再从当天市值前300名里抽15家。1–4月用前年年报、5–12月用上一年年报；市盈率、市净率、市销率按最近一期年报算（静态），不是行情软件常用的滚动市盈率。回报用复权收盘价（含分红）；一个月后停牌的按停牌前价格计，后来退市的按最后一个交易日的价格计。“大盘”是当天图上全部公司按市值加权、买入后不再调整，不是沪深300。涨跌停按“收在最高（最低）价且涨跌幅达到板块限制”判断，没有识别ST股的5%限制。
 - **港股快照：** 2026年11月13日收盘，取自经济通网站的AH股表现、热炒概念股、港股通等页面（延迟报价），港元兑人民币按0.8502计算；脚本会用页面给出的溢价校验每一对的股价。A+H公司的年报用A股数据，A股市值是2026年10月末的，和快照差两周左右。港股大公司的类型、所属的国、是否在港股通等是人工标注的，“以名单为准”表示没有核实。
 - **没有收录：** 1990–1999年（只有文字序章）、北京证券交易所、B股、2026年9月18日之后上市的6家新股。
 - 单家公司个别月份的数值可能有误。本项目适合看行业大势，不宜当作个股数据来源，**不构成投资建议**。时代解说由 AI（Claude）编写，可能有错漏，欢迎在 Issues 中指出。
@@ -130,6 +150,7 @@
 | 总市值、总股本 | [L2Wscorpio/ashare-market-data](https://github.com/L2Wscorpio/ashare-market-data) | 仓库未注明许可 |
 | 三大报表（2010–2025年报）、研发费用 | [L2Wscorpio/ashare-market-data](https://github.com/L2Wscorpio/ashare-market-data) 的财务报表 | 仓库未注明许可 |
 | 复权价（含分红的持股回报） | [chenditc/investment_data](https://github.com/chenditc/investment_data) | Apache-2.0 |
+| “持有一月”的日线：复权收盘价、最高最低价、成交额、涨跌幅（2026年11月21日的数据包） | [chenditc/investment_data](https://github.com/chenditc/investment_data) | Apache-2.0 |
 | 流通股本、逐月证监会行业、公司名称 | [noblechang/a-share-data](https://github.com/noblechang/a-share-data)（BaoStock 数据快照） | 仓库未注明许可，声明仅用于学习与研究 |
 | 名义GDP、分行业研发强度 | 国家统计局年度与季度数据、《2025年全国科技经费投入统计公报》 | 公开统计数据 |
 | 高校本科专业新增数 | 教育部历年“普通高等学校本科专业备案和审批结果”及公开报道 | 公开信息 |
@@ -149,11 +170,12 @@ guanchao.html       “观潮”页面：六条规律
 faxian.html         “发现好公司”页面：学科、产业、公司、价格四遍筛选（脚本在 assets/faxian.js）
 zhencha.html        “财报侦探”页面：财务指标与财报里的线索（脚本在 assets/zhencha.js）
 ganggu.html         “港股通”页面：从港股通里挑公司（脚本在 assets/ganggu.js，港股快照在 assets/hk.js）
+chiyou.html         “持有一月”小游戏（脚本在 assets/chiyou.js，题库在 assets/chiyou-data.js）
 video.html          讲解视频页
-assets/             数据（data.js）、候选国版图（candidates.js）、GDP与名单（extra.js）、年报摘要与复权价（quality.js）、港股快照（hk.js）、绘图库、字体、图标与截图
+assets/             数据（data.js）、候选国版图（candidates.js）、GDP与名单（extra.js）、年报摘要与复权价（quality.js）、港股快照（hk.js）、“持有一月”题库（chiyou-data.js）、绘图库、字体、图标与截图
 download/           离线版压缩包
 video/              讲解视频
 tools/              数据处理脚本，见 tools/README.md
 ```
 
-本地运行：直接双击 `index.html`、`guanchao.html`、`faxian.html`、`zhencha.html` 或 `ganggu.html`；或在项目目录运行 `python3 -m http.server`，再打开 http://localhost:8000 。
+本地运行：直接双击 `index.html`、`guanchao.html`、`faxian.html`、`zhencha.html`、`ganggu.html` 或 `chiyou.html`；或在项目目录运行 `python3 -m http.server`，再打开 http://localhost:8000 。
