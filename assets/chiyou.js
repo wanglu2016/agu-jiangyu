@@ -475,13 +475,16 @@ const API = CFG.url && CFG.key ? CFG.url.replace(/\/+$/, '') + '/rest/v1/rpc/' :
 async function rpc(fn, args) {
   const ctl = new AbortController(), tm = setTimeout(() => ctl.abort(), 12000);
   try {
-    const res = await fetch(API + fn, { method: 'POST', signal: ctl.signal, headers: { 'Content-Type': 'application/json', apikey: CFG.key, Authorization: 'Bearer ' + CFG.key }, body: JSON.stringify(args || {}) });
+    // 新版公开密钥（sb_publishable_…）不是 JWT，只能放在 apikey 头里；旧版 anon key 是 JWT，按惯例同时放进 Authorization
+    const headers = { 'Content-Type': 'application/json', apikey: CFG.key };
+    if (!/^sb_/.test(CFG.key)) headers.Authorization = 'Bearer ' + CFG.key;
+    const res = await fetch(API + fn, { method: 'POST', signal: ctl.signal, headers, body: JSON.stringify(args || {}) });
     const txt = await res.text();
     if (!res.ok) { let m = txt; try { m = JSON.parse(txt).message || txt; } catch (e) { /* 原样 */ } throw new Error(m); }
     return JSON.parse(txt);
   } finally { clearTimeout(tm); }
 }
-const RANKMSG = { 'too fast': '提交得太快了，过一会儿再试', 'not enough cash': '这一局的交易和规则对不上', 'bad sell': '这一局的交易和规则对不上', 'bad buy': '这一局的交易和规则对不上', 'bad row': '题库版本和服务器对不上，刷新页面再试' };
+const RANKMSG = { 'Could not find the function': '排行榜正在开通，稍后再来', 'too fast': '提交得太快了，过一会儿再试', 'not enough cash': '这一局的交易和规则对不上', 'bad sell': '这一局的交易和规则对不上', 'bad buy': '这一局的交易和规则对不上', 'bad row': '题库版本和服务器对不上，刷新页面再试' };
 let RB = { k: API ? 'wait' : 'off' };
 async function submitRound(rec) {
   if (!API) { RB = { k: 'off' }; renderRankBox(); return; }
@@ -533,7 +536,7 @@ async function loadBoard() {
   const box = $('#board');
   if (!API) { box.innerHTML = '<p class="prose">排行榜要连上服务器才能用，目前还没开通。你的每一局仍会记在下面的“战绩”里。</p>'; return; }
   if (!BOARD) box.innerHTML = '<p class="small">正在读取排行榜……</p>';
-  try { BOARD = await rpc('cy_top', {}); } catch (e) { box.innerHTML = '<p class="small">没连上排行榜服务器。 <button class="linkbtn" id="bdRetry">再试一次</button></p>'; $('#bdRetry').onclick = loadBoard; return; }
+  try { BOARD = await rpc('cy_top', {}); } catch (e) { box.innerHTML = `<p class="small">${/Could not find the function/.test(String(e.message)) ? '排行榜正在开通，稍后再来。' : '没连上排行榜服务器。'} <button class="linkbtn" id="bdRetry">再试一次</button></p>`; $('#bdRetry').onclick = loadBoard; return; }
   const mine = new Set(loadRec().rounds.filter(x => x.srv).map(x => x.srv.id));
   const top = BOARD.top || [];
   box.innerHTML = `<p class="prose">已经有 <b>${(+BOARD.players).toLocaleString('zh-CN')}</b> 位玩家玩了 <b>${(+BOARD.total).toLocaleString('zh-CN')}</b> 局。</p>` +

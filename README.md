@@ -123,9 +123,9 @@ GitHub Pages 只能放静态网页，记录所有玩家的对局需要一个数�
 
 1. 用 GitHub 账号登录 Supabase，新建一个项目（Region 选新加坡或东京，离国内近）。
 2. 打开项目的 **SQL Editor**，把 [`tools/chiyou-supabase.sql`](tools/chiyou-supabase.sql) 的全部内容粘贴进去，点 **Run**。它会建两张表（题库答案、对局记录）和三个函数（提交一局、晒战绩、读排行榜），可以重复运行。
-3. 打开 **Project Settings → API**，把 Project URL 和 anon public key 填进 [`assets/chiyou-config.js`](assets/chiyou-config.js)。
+3. 打开 **Project Settings → API Keys**，把 Project URL 和 Publishable key（`sb_publishable_…`，旧项目是 anon public key）填进 [`assets/chiyou-config.js`](assets/chiyou-config.js)。
 
-没填的时候游戏照常能玩，只是不上传、不排名。anon key 本来就是公开给网页用的：两张表都开了行级安全且不给任何权限，网页只能调用那三个函数；提交时服务器不相信网页算的盈亏，而是按题库答案重新计算，再按“你的操作带来”排名。所有对局都可以在 Supabase 后台的 `cy_rounds` 表里查看、导出。
+本项目已经填好（项目 game-leaderboard，新加坡）。没填的时候游戏照常能玩，只是不上传、不排名。这个公开密钥本来就是给网页用的：两张表都开了行级安全且不给任何权限，网页只能调用那三个函数；提交时服务器不相信网页算的盈亏，而是按题库答案重新计算，再按“你的操作带来”排名。所有对局都可以在 Supabase 后台的 `cy_rounds` 表里查看、导出。
 
 ## 下载
 
