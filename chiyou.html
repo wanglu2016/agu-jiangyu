@@ -224,6 +224,10 @@ table.res.lb th:nth-child(2), table.res.lb td:nth-child(2) { text-align: left; }
 .mhist svg text, .dchart svg text { font-size: 11px; fill: var(--fg-3); font-family: var(--sans); }
 .mhist svg text.lab, .dchart svg text.lab { fill: var(--fg); font-weight: 700; font-size: 12px; }
 .dchart .zero { stroke: var(--line-2); }
+.games { display: inline-flex; gap: 2px; margin: 0 0 14px; padding: 3px; border: 1px solid var(--line-2); border-radius: 999px; background: var(--panel); }
+.games a { padding: 3px 13px; border-radius: 999px; font-size: 13.5px; color: var(--fg-2); text-decoration: none; white-space: nowrap; }
+.games a:hover { color: var(--fg); }
+.games a.on { background: var(--fg); color: var(--panel); font-weight: 700; }
 .again { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; margin: 22px 0 0; }
 #copied { font-size: 13px; color: var(--malachite); }
 
@@ -279,6 +283,7 @@ footer p { margin: 14px 0 0; }
 <section id="hero" aria-label="持有一月">
   <div class="in">
     <div>
+      <nav class="games" aria-label="三个游戏"><a href="chiyou.html" class="on" aria-current="page">持有一月</a><a href="sanyue.html">持有三月</a><a href="yinian.html">持有一年</a></nav>
       <p class="kick">用真实历史练眼力 · 一个小游戏</p>
       <h1>持有一月</h1>
       <p class="lede">你有一个 <b>100 万元</b>的账户：大约一半是现金，另一半差不多平均地买成了几只股票。每只股票来自 <b>2013–2026 年</b>里随机的一天，你看不到名字和日期，只能<b>翻开最多五项指标</b>，然后决定加仓、减仓还是不动；手里的现金<b>全部</b>可以拿来加仓。<b>一个月后</b>揭晓，每只和它自己同期的大盘比，再往后看一年、三年。</p>
@@ -324,13 +329,13 @@ footer p { margin: 14px 0 0; }
 
   <section class="sec" id="paihang">
     <h2>排行榜</h2>
-    <p class="sub">所有玩过的局，按“你的操作带来”排名的前 100 名。一动不动是 0；抽到哪只股票的运气被扣掉了，只算你加减仓的结果。只有选择晒战绩的，才显示昵称。</p>
+    <p class="sub">所有玩过「持有一月」的局，按“你的操作带来”排名的前 100 名。一动不动是 0；抽到哪只股票的运气被扣掉了，只算你加减仓的结果。只有选择晒战绩的，才显示昵称。</p>
     <div id="board"></div>
   </section>
 
   <section class="sec" id="zhanji">
     <h2>战绩</h2>
-    <p class="sub">这台设备上玩过的局。一个月后的输赢看个热闹；一年、三年后的结果，才更接近你的判断本身。</p>
+    <p class="sub">这台设备上玩过的「持有一月」。一个月后的输赢看个热闹；一年、三年后的结果，才更接近你的判断本身。</p>
     <div id="record"></div>
   </section>
 
@@ -347,6 +352,8 @@ footer p { margin: 14px 0 0; }
   <a href="faxian.html"><div class="k">把注意力放在哪里</div><b>发现好公司</b><span>学科、产业、公司、价格筛四遍</span></a>
   <a href="zhencha.html"><div class="k">先排除谁</div><b>财报侦探</b><span>财务指标与财报里的线索</span></a>
   <a href="ganggu.html"><div class="k">对岸</div><b>港股通</b><span>从港股通里挑公司</span></a>
+  <a href="sanyue.html"><div class="k">练眼力</div><b>持有三月</b><span>三个月后揭晓</span></a>
+  <a href="yinian.html"><div class="k">练眼力</div><b>持有一年</b><span>一年后揭晓</span></a>
 </nav>
 
 <footer id="koujing">
@@ -355,6 +362,7 @@ footer p { margin: 14px 0 0; }
   <p>本页不构成投资建议。 <a href="index.html">回到地图</a> · <a href="faxian.html">发现好公司</a> · <a href="zhencha.html">财报侦探</a> · <a href="https://github.com/wanglu2016/agu-jiangyu" target="_blank" rel="noopener">源代码、数据来源与离线版</a></p>
 </footer>
 
+<script>window.AGU_CY_GAME = {"id": 1, "store": "agu-chiyou-v2", "luck": "一个月的结果多半是运气"};</script>
 <script src="assets/chiyou-data.js"></script>
 <script src="assets/chiyou-config.js"></script>
 <script src="assets/chiyou.js"></script>

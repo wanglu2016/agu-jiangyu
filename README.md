@@ -8,6 +8,8 @@
 **在线体验 · 财报侦探（财务指标与财报里的线索）：** https://wanglu2016.github.io/agu-jiangyu/zhencha.html
 **在线体验 · 港股通（从港股通里挑公司）：** https://wanglu2016.github.io/agu-jiangyu/ganggu.html
 **在线体验 · 持有一月（用真实历史练眼力的小游戏）：** https://wanglu2016.github.io/agu-jiangyu/chiyou.html
+**在线体验 · 持有三月：** https://wanglu2016.github.io/agu-jiangyu/sanyue.html
+**在线体验 · 持有一年：** https://wanglu2016.github.io/agu-jiangyu/yinian.html
 **使用讲解视频（4分38秒）：** https://wanglu2016.github.io/agu-jiangyu/video.html （录制于加入候选国、海平面和后面五个页面之前）
 
 ![A股疆域图截图](assets/preview.jpg)
@@ -21,6 +23,8 @@
 ![港股通截图](assets/preview-ganggu.jpg)
 
 ![持有一月截图](assets/preview-chiyou.jpg)
+
+![持有一年截图](assets/preview-yinian.jpg)
 
 ## 能做什么
 
@@ -100,7 +104,7 @@
 
 港股快照只收录了两百多对A+H公司和四十多家港股大公司，不是港股通的全部名单；数字会过时，**不构成投资建议**。
 
-## 持有一月：用真实历史练眼力
+## 持有一月 · 持有三月 · 持有一年：用真实历史练眼力
 
 [持有一月](https://wanglu2016.github.io/agu-jiangyu/chiyou.html)是第六个页面，一个小游戏。前五页是课本，这一页是练习册：看到行情软件上的一个数字，能不能想到它在什么情况下会骗人，下一眼该看哪一行。
 
@@ -117,19 +121,32 @@
 
 题库共161个决策日、7,225道题、3,174家公司（含后来退市的）。指标只用当天能看到的数据，回报含分红；颜色按行情软件的习惯，红涨绿跌。“这个数字怎么会骗人”的提示由 AI（Claude）编写，**不构成投资建议**。
 
+### 持有三月、持有一年
+
+[持有三月](https://wanglu2016.github.io/agu-jiangyu/sanyue.html)和[持有一年](https://wanglu2016.github.io/agu-jiangyu/yinian.html)是同一个游戏的两个兄弟，玩法、账户、翻牌和交易规则完全一样，只是每只股票持有三个月、一年才揭晓。每个游戏有自己的排行榜和自己的战绩，互不混排。
+
+| | 持有一月 | 持有三月 | 持有一年 |
+|---|---|---|---|
+| 决策日 | 2013年5月–2026年9月，161个 | 2013年5月–2026年7月，159个 | 2013年5月–2025年10月，150个 |
+| 题数 | 7,225道，3,174家公司 | 7,135道，3,143家公司 | 6,731道，3,027家公司 |
+| 揭晓时的走势图 | 当月每个交易日 | 三个月里14个等距的交易日 | 一年里每个月末 |
+| 再往后看 | 一年、三年 | 一年、三年 | 三年 |
+
+三个游戏用同一份题库，决策日越晚的题，越要等得久才有答案，所以持有越久，能抽的题越少。持有得越久，生意的差别越有机会显出来，但也没有想象中快：题库里“好公司”和“满身疑点”的公司，三个月后跑赢大盘的比例是42%对43%，一年后43%对44%，三年后才拉开到40%对36%（页面上是实时算的）。
+
 ### 开通排行榜
 
 GitHub Pages 只能放静态网页，记录所有玩家的对局需要一个数据库。本项目用 [Supabase](https://supabase.com)（有免费额度）：
 
 1. 用 GitHub 账号登录 Supabase，新建一个项目（Region 选新加坡或东京，离国内近）。
-2. 打开项目的 **SQL Editor**，把 [`tools/chiyou-supabase.sql`](tools/chiyou-supabase.sql) 的全部内容粘贴进去，点 **Run**。它会建两张表（题库答案、对局记录）和三个函数（提交一局、晒战绩、读排行榜），可以重复运行。
+2. 打开项目的 **SQL Editor**，把 [`tools/chiyou-supabase.sql`](tools/chiyou-supabase.sql) 的全部内容粘贴进去，点 **Run**。它会建两张表（题库答案、对局记录）和三个函数（提交一局、晒战绩、读排行榜），可以重复运行。三个游戏共用这两张表：答案表里有一个月、三个月、一年三列回报，对局表的 `game` 列（1、3、12）区分是哪个游戏，排行榜各排各的。
 3. 打开 **Project Settings → API Keys**，把 Project URL 和 Publishable key（`sb_publishable_…`，旧项目是 anon public key）填进 [`assets/chiyou-config.js`](assets/chiyou-config.js)。
 
 本项目已经填好（项目 game-leaderboard，新加坡）。没填的时候游戏照常能玩，只是不上传、不排名。这个公开密钥本来就是给网页用的：两张表都开了行级安全且不给任何权限，网页只能调用那三个函数；提交时服务器不相信网页算的盈亏，而是按题库答案重新计算，再按“你的操作带来”排名。所有对局都可以在 Supabase 后台的 `cy_rounds` 表里查看、导出。
 
 ## 下载
 
-- **离线版网页（约9 MB）：** [agu-jiangyu-site.zip](https://github.com/wanglu2016/agu-jiangyu/raw/main/download/agu-jiangyu-site.zip)。解压后双击 `index.html`（地图）、`guanchao.html`（观潮）、`faxian.html`（发现好公司）、`zhencha.html`（财报侦探）、`ganggu.html`（港股通）或 `chiyou.html`（持有一月）即可使用，不需要联网或安装任何软件。
+- **离线版网页（约9 MB）：** [agu-jiangyu-site.zip](https://github.com/wanglu2016/agu-jiangyu/raw/main/download/agu-jiangyu-site.zip)。解压后双击 `index.html`（地图）、`guanchao.html`（观潮）、`faxian.html`（发现好公司）、`zhencha.html`（财报侦探）、`ganggu.html`（港股通）、`chiyou.html`（持有一月）、`sanyue.html`（持有三月）或 `yinian.html`（持有一年）即可使用，不需要安装任何软件；三个小游戏的排行榜需要联网。
 - **讲解视频（46 MB）：** [agu-jiangyu-guide.mp4](https://github.com/wanglu2016/agu-jiangyu/raw/main/video/agu-jiangyu-guide.mp4)，也可以在[视频页](https://wanglu2016.github.io/agu-jiangyu/video.html)点“下载视频”。
 - **全部源代码：** 页面右上角绿色的 **Code → Download ZIP**。
 
@@ -148,7 +165,7 @@ GitHub Pages 只能放静态网页，记录所有玩家的对局需要一个数�
 - **持股回报：** 用复权收盘价计算，等于把分红再买成股票，只在每年12月末和最后一个月取值；它和“市值变成了几倍”不是一回事，后者还包含增发和资产注入。“城基”一章只统计今天还在图上的公司，回报率低的那几档实际更差。
 - **学科与前沿：** 前沿的公司名单沿用候选国、观察名单和科技环节分组，学科与政策节点按公开报道的日期标注；高校专业数字来自教育部历年公布的本科专业备案和审批结果及公开报道，国家统计局的研发强度来自《2025年全国科技经费投入统计公报》。
 - **财报侦探：** 疑点用的是观察期五年的年报：利润年年为正但经营现金流合计不到利润一半、有亏损年份、外部融资（期末净资产 − 期初净资产 − 五年利润）超过期初净资产、资产负债率70%以上（房地产除外）；“侦查”另加商誉超过净资产30%。杜邦拆解的总资产由归母净资产和资产负债率推算。净回馈 = 累计归母净利润 − 归母净资产的增加，约等于分红加回购减新募股本。卷宗案情来自证监会处罚决定、法院判决和公开报道。
-- **持有一月：** 决策日是每个月最后一个交易日（2013年5月–2026年9月），每个决策日从“上市满一年、当天有交易”的公司里随机抽30家，再从当天市值前300名里抽15家；一局里的每只股票各自抽一个决策日。账户100万元，开局时每只买到最接近“50万 ÷ 只数”的整手数（至少一手）。1–4月用前年年报、5–12月用上一年年报；市盈率、市净率、市销率按最近一期年报算（静态），不是行情软件常用的滚动市盈率。回报用复权收盘价（含分红）；一个月后停牌的按停牌前价格计，后来退市的按最后一个交易日的价格计。“大盘”是当天图上全部公司按市值加权、买入后不再调整，不是沪深300。涨跌停按“收在最高（最低）价且涨跌幅达到板块限制”判断，没有识别ST股的5%限制。
+- **持有一月：** 决策日是每个月最后一个交易日（2013年5月–2026年9月），每个决策日从“上市满一年、当天有交易”的公司里随机抽30家，再从当天市值前300名里抽15家；一局里的每只股票各自抽一个决策日。账户100万元，开局时每只买到最接近“50万 ÷ 只数”的整手数（至少一手）。1–4月用前年年报、5–12月用上一年年报；市盈率、市净率、市销率按最近一期年报算（静态），不是行情软件常用的滚动市盈率。回报用复权收盘价（含分红）；一个月后停牌的按停牌前价格计，后来退市的按最后一个交易日的价格计。“大盘”是当天图上全部公司按市值加权、买入后不再调整，不是沪深300。涨跌停按“收在最高（最低）价且涨跌幅达到板块限制”判断，没有识别ST股的5%限制。持有三月、持有一年的规则相同，只是回报算到三个月、十二个月后的月末；最后一道有答案的题分别来自2026年7月、2025年10月。
 - **港股快照：** 2026年11月13日收盘，取自经济通网站的AH股表现、热炒概念股、港股通等页面（延迟报价），港元兑人民币按0.8502计算；脚本会用页面给出的溢价校验每一对的股价。A+H公司的年报用A股数据，A股市值是2026年10月末的，和快照差两周左右。港股大公司的类型、所属的国、是否在港股通等是人工标注的，“以名单为准”表示没有核实。
 - **没有收录：** 1990–1999年（只有文字序章）、北京证券交易所、B股、2026年9月18日之后上市的6家新股。
 - 单家公司个别月份的数值可能有误。本项目适合看行业大势，不宜当作个股数据来源，**不构成投资建议**。时代解说由 AI（Claude）编写，可能有错漏，欢迎在 Issues 中指出。
@@ -182,11 +199,13 @@ faxian.html         “发现好公司”页面：学科、产业、公司、价
 zhencha.html        “财报侦探”页面：财务指标与财报里的线索（脚本在 assets/zhencha.js）
 ganggu.html         “港股通”页面：从港股通里挑公司（脚本在 assets/ganggu.js，港股快照在 assets/hk.js）
 chiyou.html         “持有一月”小游戏（脚本在 assets/chiyou.js，题库在 assets/chiyou-data.js，排行榜服务器地址在 assets/chiyou-config.js）
+sanyue.html         “持有三月”小游戏（和持有一月共用脚本与题库，另加 assets/chiyou-ext.js）
+yinian.html         “持有一年”小游戏（同上）
 video.html          讲解视频页
-assets/             数据（data.js）、候选国版图（candidates.js）、GDP与名单（extra.js）、年报摘要与复权价（quality.js）、港股快照（hk.js）、“持有一月”题库（chiyou-data.js）、绘图库、字体、图标与截图
+assets/             数据（data.js）、候选国版图（candidates.js）、GDP与名单（extra.js）、年报摘要与复权价（quality.js）、港股快照（hk.js）、“持有一月”题库（chiyou-data.js）和三个月、一年的答案（chiyou-ext.js）、绘图库、字体、图标与截图
 download/           离线版压缩包
 video/              讲解视频
 tools/              数据处理脚本，见 tools/README.md
 ```
 
-本地运行：直接双击 `index.html`、`guanchao.html`、`faxian.html`、`zhencha.html`、`ganggu.html` 或 `chiyou.html`；或在项目目录运行 `python3 -m http.server`，再打开 http://localhost:8000 。
+本地运行：直接双击 `index.html`、`guanchao.html`、`faxian.html`、`zhencha.html`、`ganggu.html`、`chiyou.html`、`sanyue.html` 或 `yinian.html`；或在项目目录运行 `python3 -m http.server`，再打开 http://localhost:8000 。

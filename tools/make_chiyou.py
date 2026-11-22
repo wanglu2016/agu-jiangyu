@@ -1,4 +1,4 @@
-"""生成 ../assets/chiyou-data.js：“持有一月”游戏用的历史题库。
+"""生成 ../assets/chiyou-data.js：“持有一月”游戏用的历史题库；以及 ../assets/chiyou-ext.js：同一份题库在“持有三月”“持有一年”里要用的答案。
 
 输入：
   input/qlib_bin/        每日行情（chenditc/investment_data 的 qlib 数据包）：复权收盘价、复权因子、最高、最低、成交额、涨跌幅
@@ -28,6 +28,14 @@
   sea         2000-01 起每个月的海平面（全图市值 ÷ 近一年GDP，%），与地图页同一算法
   sec         30 国的 [键, 名称]；sec12 每个决策月 30 国总市值近 12 个月的变化
   fd          每个决策月非金融公司里亮 0…4 个疑点的家数，以及没有判断的家数
+
+另外输出的 window.AGU_CY_EXT（chiyou-data.js 不变，题目行一一对应；持有到期日还在数据之外的为“没有”）：
+  f3          Int16 R：三个月后的回报（含分红）×10，单位 %，-32768 为没有；一年后的回报就是 rows 里的 f12
+  p3          Uint8 R：三个月回报在当月合格公司里的百分位（255 为没有）
+  w3          Int16 R×K3：三个月里 K3 个等距交易日的复权价 / 决策日，log10 × 10000
+  s3、s12     Uint8 R：三个月、一年后那天是否停牌（1 停牌，按停牌前价格计；255 为没有）
+  med3、med12 每个决策月合格公司三个月、一年回报的中位数；hist3、hist12 回报分布（bins 给出起点和格宽，两端各一格溢出）
+  mw3         每个决策月全市场三个月的走势（K3 个点，同 w3 的编码）；d3、d12 三个月、一年后的日期
 """
 import os, sys, json, base64, re
 import numpy as np, pandas as pd
@@ -205,6 +213,11 @@ def pct_rank(vals, pool):
     return np.where(np.isfinite(vals), p, 255).astype(int)
 
 rows, pcts, nis, mps, dps = [], [], [], [], []
+# “持有三月”“持有一年”用的扩展数据（和题库同一批题，行序相同）
+K3 = 14                                                                      # 三个月走势取 14 个等距交易日，存 log10(复权价/决策日) × 10000
+HB3 = np.concatenate([[-np.inf], np.arange(-60, 61, 4), [np.inf]])           # 三个月回报分布：−60%…+60%，每 4% 一格
+HB12 = np.concatenate([[-np.inf], np.arange(-80, 161, 8), [np.inf]])         # 一年回报分布：−80%…+160%，每 8% 一格
+EXT = {k: [] for k in ('f3', 'p3', 'w3', 's3', 's12', 'med3', 'hist3', 'mw3', 'd3', 'med12', 'hist12', 'd12')}
 co_idx = {}; co_out = []
 mon = dict(months=[], d0=[], d1=[], nd=[], mkt=[], mpath=[], mday=[], med1=[], hist=[], sec12=[], fd=[], ne=[])
 for t in DM:
@@ -229,7 +242,21 @@ for t in DM:
     with np.errstate(invalid='ignore', divide='ignore'):
         rd = ADJ_D[:, d0:d1 + 1].astype(np.float64) / ADJ_D[:, d0:d0 + 1]
     mday = [int(round((float(np.nansum(w[:, None] * np.where(np.isfinite(rd), rd, 1), axis=0)[i]) - 1) * 10000)) for i in range(d1 - d0 + 1)]
-    r1 = ret(t, 1) * 100; r12 = ret(t, 12) * 100; r36 = ret(t, 36) * 100
+    r1 = ret(t, 1) * 100; r12 = ret(t, 12) * 100; r36 = ret(t, 36) * 100; r3 = ret(t, 3) * 100
+    has3, has12 = t + 3 <= T_LAST, t + 12 <= T_LAST
+    hist3 = np.histogram(r3[ids], bins=HB3)[0].tolist() if has3 else None
+    hist12 = np.histogram(r12[ids], bins=HB12)[0].tolist() if has12 else None
+    if has3:
+        d3 = ME[t + 3]; pos3 = np.round(np.linspace(0, d3 - d0, K3)).astype(int)
+        with np.errstate(invalid='ignore', divide='ignore'):
+            rd3 = ADJ_D[:, d0:d3 + 1].astype(np.float64) / ADJ_D[:, d0:d0 + 1]
+        mw3 = np.nansum(w[:, None] * np.where(np.isfinite(rd3), rd3, 1), axis=0)[pos3]
+        EXT['mw3'].append([int(round(np.log10(x) * 10000)) for x in mw3]); EXT['d3'].append(str(CAL[d3].date()))
+    else:
+        EXT['mw3'].append(None); EXT['d3'].append(None)
+    EXT['med3'].append(round(float(np.nanmedian(r3[ids])), 2) if has3 else None); EXT['hist3'].append(hist3)
+    EXT['med12'].append(round(float(np.nanmedian(r12[ids])), 2) if has12 else None); EXT['hist12'].append(hist12)
+    EXT['d12'].append(str(CAL[ME[t + 12]].date()) if has12 else None)
     hist = np.histogram(np.clip(r1[ids], -1e9, 1e9), bins=HBINS)[0].tolist()
     sec12 = []
     for s in range(len(SECT)):
@@ -276,7 +303,7 @@ for t in DM:
         h = PE[j, max(t - 59, 0):t + 1]; h = h[np.isfinite(h)]
         if not np.isfinite(PE[j, t]) or len(h) < 24: return np.nan
         return round(((h < PE[j, t]).sum() + (h == PE[j, t]).sum() / 2) / len(h) * 100)
-    P1 = pct_rank(r1, r1[ids]); P12 = pct_rank(r12, r12[ids])
+    P1 = pct_rank(r1, r1[ids]); P12 = pct_rank(r12, r12[ids]); P3 = pct_rank(r3, r3[ids]) if has3 else None
 
     # 抽样
     rank = ids[np.argsort(-cap[ids])]; top = set(rank[:300].tolist())
@@ -308,6 +335,13 @@ for t in DM:
         mps.append(mp)
         dd = ADJ_D[j, d0:d1 + 1].astype(np.float64) / ADJ_D[j, d0]
         dps.extend(int(np.clip(round((x - 1) * 10000), -32767, 32767)) for x in dd)
+        EXT['f3'].append(enc('f1', r3[j]) if has3 else -32768); EXT['p3'].append(int(P3[j]) if has3 and np.isfinite(r3[j]) else 255)
+        if has3:
+            dw = ADJ_D[j, d0:d3 + 1].astype(np.float64)[pos3] / ADJ_D[j, d0]
+            EXT['w3'].extend(int(np.clip(round(np.log10(x) * 10000), -32767, 32767)) if np.isfinite(x) and x > 0 else -32768 for x in dw)
+        else:
+            EXT['w3'].extend([-32768] * K3)
+        EXT['s3'].append((0 if F['trd'][j, t + 3] == 1 else 1) if has3 else 255); EXT['s12'].append((0 if F['trd'][j, t + 12] == 1 else 1) if has12 else 255)
     mon['months'].append(MONTHS[t]); mon['d0'].append(str(CAL[d0].date())); mon['d1'].append(str(CAL[d1].date()))
     mon['nd'].append(nd); mon['mkt'].append(mk); mon['mpath'].append(path); mon['mday'].append(mday)
     mon['med1'].append(round(float(np.nanmedian(r1[ids])), 2)); mon['hist'].append(hist)
@@ -325,4 +359,12 @@ path = os.path.join(R, 'assets', 'chiyou-data.js')
 with open(path, 'w', encoding='utf-8') as f:
     f.write('/* “持有一月”题库：由 tools/make_chiyou.py 生成，勿手改 */\n')
     f.write('window.AGU_CY=' + json.dumps(out, ensure_ascii=False, separators=(',', ':')) + ';\n')
+print(path, os.path.getsize(path) // 1024, 'KB')
+xo = dict(v=DATA_VERSION, R=R_, K3=K3, bins={'3': [-60, 4], '12': [-80, 8]},
+          f3=b64(EXT['f3'], '<i2'), p3=b64(EXT['p3'], 'u1'), w3=b64(EXT['w3'], '<i2'), s3=b64(EXT['s3'], 'u1'), s12=b64(EXT['s12'], 'u1'),
+          **{k: EXT[k] for k in ('med3', 'hist3', 'mw3', 'd3', 'med12', 'hist12', 'd12')})
+path = os.path.join(R, 'assets', 'chiyou-ext.js')
+with open(path, 'w', encoding='utf-8') as f:
+    f.write('/* “持有三月”“持有一年”的扩展题库（与 chiyou-data.js 同一批题、同样行序）：由 tools/make_chiyou.py 生成，勿手改 */\n')
+    f.write('window.AGU_CY_EXT=' + json.dumps(xo, ensure_ascii=False, separators=(',', ':')) + ';\n')
 print(path, os.path.getsize(path) // 1024, 'KB')

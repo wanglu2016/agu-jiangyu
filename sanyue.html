@@ -1,0 +1,371 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>持有三月 · A股疆域图</title>
+<meta name="description" content="用真实历史练眼力的小游戏：100万元的账户，几只股票各自来自2013–2026年里随机的一天，隐去名字和日期。每只最多翻开五项指标，决定加仓、减仓还是不动，三个月后揭晓，和各自同期的大盘比，再往后看一年、三年；进入前100名可以晒战绩。">
+<meta property="og:title" content="持有三月 · 用真实历史练眼力">
+<meta property="og:description" content="看不到名字，只能翻五张牌。三个月后揭晓：一个季度，够不够让判断压过运气？">
+<meta property="og:image" content="assets/preview-sanyue.jpg">
+<meta name="theme-color" content="#e8e1d1">
+<link rel="icon" href="assets/icon.svg" type="image/svg+xml">
+<style>html,body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
+<link rel="stylesheet" href="assets/fonts/fonts.css">
+<style>
+/* 持有一月：一张旧账页。墨是判断，朱是涨，石绿是跌（和行情软件一样，红涨绿跌）。 */
+:root {
+  --sea: #e8e1d1; --sea-2: #ddd4c0; --panel: #f6f3ec; --panel-2: #ece7dc; --card: #fbf9f4;
+  --line: rgba(48, 42, 30, 0.13); --line-2: rgba(48, 42, 30, 0.28);
+  --fg: #221f19; --fg-2: #514b40; --fg-3: #7c7567;
+  --gold: #8f6418; --malachite: #2f7a63; --ink: #2d3a4a;
+  --up: #c0392b; --down: #23825f; --up-bg: rgba(192, 57, 43, 0.10); --down-bg: rgba(35, 130, 95, 0.10);
+  --mk: #6d6457; --hl: rgba(143, 100, 24, 0.16);
+  --tip: rgba(34, 31, 25, 0.95); --tip-fg: #f3efe4;
+  --serif: "Noto Serif SC", "Source Han Serif SC", "Songti SC", "STSong", serif;
+  --sans: "Noto Sans SC", "Source Han Sans SC", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --sea: #1b1913; --sea-2: #24211a; --panel: #13120e; --panel-2: #1d1b15; --card: #1a1813;
+    --line: rgba(235, 225, 205, 0.11); --line-2: rgba(235, 225, 205, 0.26);
+    --fg: #ece6d6; --fg-2: #bdb5a4; --fg-3: #8f877a;
+    --gold: #d8b66c; --malachite: #79b9a0; --ink: #9db4cf;
+    --up: #ef6a55; --down: #4fbf92; --up-bg: rgba(239, 106, 85, 0.13); --down-bg: rgba(79, 191, 146, 0.13);
+    --mk: #a59c8c; --hl: rgba(216, 182, 108, 0.16);
+    --tip: rgba(236, 231, 216, 0.97); --tip-fg: #14120e; color-scheme: dark;
+  }
+}
+html { scroll-behavior: smooth; scroll-padding-top: 64px; }
+body { background: var(--panel); color: var(--fg); font-family: var(--sans); font-size: 15px; line-height: 1.8; -webkit-font-smoothing: antialiased; }
+a { color: var(--malachite); text-underline-offset: 3px; }
+button, input, select { font: inherit; color: inherit; }
+button { cursor: pointer; }
+button:disabled { cursor: default; }
+:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+.num { font-variant-numeric: tabular-nums; }
+.up { color: var(--up); } .down { color: var(--down); } .flat { color: var(--fg-2); }
+
+/* 顶栏 */
+#bar { position: sticky; top: 0; z-index: 20; display: flex; align-items: center; gap: 14px; height: 52px; padding: 0 max(18px, env(safe-area-inset-right, 0px)) 0 max(18px, env(safe-area-inset-left, 0px)); background: var(--panel); border-bottom: 1px solid var(--line); }
+#bar .home { font-family: var(--serif); font-weight: 600; letter-spacing: .18em; font-size: 14px; color: var(--fg-2); text-decoration: none; white-space: nowrap; }
+#bar .home b { color: var(--fg); font-weight: 900; margin-left: .6em; letter-spacing: .1em; }
+#bar nav { display: flex; gap: 2px; margin-left: auto; overflow-x: auto; scrollbar-width: none; }
+#bar nav::-webkit-scrollbar { display: none; }
+#bar nav a { padding: 6px 10px; font-size: 14px; color: var(--fg-2); text-decoration: none; white-space: nowrap; }
+#bar nav a:hover { color: var(--fg); }
+#bar .go { flex: none; padding: 6px 14px; border-radius: 999px; border: 1px solid var(--malachite); color: var(--malachite); text-decoration: none; font-size: 13.5px; white-space: nowrap; }
+#bar .go:hover { background: var(--malachite); color: var(--panel); }
+
+/* 页首 */
+#hero { background: var(--sea); border-bottom: 1px solid var(--line-2); }
+#hero .in { max-width: 1180px; margin: 0 auto; display: grid; grid-template-columns: minmax(0, 6fr) minmax(0, 5fr); gap: 28px 64px; align-items: end; padding: clamp(30px, 6vh, 64px) max(22px, env(safe-area-inset-right, 0px)) clamp(28px, 5vh, 52px) max(22px, env(safe-area-inset-left, 0px)); }
+#hero .kick { font-size: 13px; letter-spacing: .2em; color: var(--gold); font-weight: 700; margin: 0 0 10px; }
+#hero h1 { margin: 0; font-family: var(--serif); font-weight: 900; font-size: clamp(46px, 6.8vw, 86px); line-height: 1.06; letter-spacing: .1em; }
+#hero .lede { margin: 18px 0 0; max-width: 31em; font-size: clamp(15px, 1.5vw, 17px); line-height: 1.9; color: var(--fg-2); }
+#hero .lede b { color: var(--fg); }
+.luck { border-top: 1px solid var(--line-2); }
+.luck h2 { margin: 12px 0 2px; font-family: var(--serif); font-size: 18px; font-weight: 600; line-height: 1.5; }
+.luck .sub { margin: 0 0 10px; font-size: 13px; color: var(--fg-3); line-height: 1.65; }
+.luck table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+.luck th, .luck td { padding: 6px 8px; text-align: right; border-bottom: 1px solid var(--line); white-space: nowrap; }
+.luck th:first-child, .luck td:first-child { text-align: left; padding-left: 0; white-space: normal; }
+.luck th { font-weight: 500; color: var(--fg-3); font-size: 12.5px; }
+.luck td b { font-size: 17px; }
+.luck .foot { margin: 8px 0 0; font-size: 12.5px; color: var(--fg-3); line-height: 1.65; }
+
+main { max-width: 1180px; margin: 0 auto; padding: 0 max(22px, env(safe-area-inset-right, 0px)) 0 max(22px, env(safe-area-inset-left, 0px)); }
+.sec { padding: 40px 0 44px; border-bottom: 1px solid var(--line-2); }
+.sec > h2 { margin: 0 0 4px; font-family: var(--serif); font-weight: 900; font-size: 30px; letter-spacing: .1em; }
+.sec > .sub { margin: 0 0 18px; color: var(--fg-3); font-size: 13.5px; max-width: 52em; }
+
+/* 开局 */
+.setup { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 28px 48px; align-items: start; }
+.opt { margin: 0 0 18px; }
+.opt .k { font-size: 13px; color: var(--fg-3); margin-bottom: 6px; }
+.seg { display: inline-flex; border: 1px solid var(--line-2); border-radius: 10px; overflow: hidden; background: var(--card); }
+.seg button { border: 0; background: transparent; padding: 7px 16px; font-size: 14.5px; color: var(--fg-2); min-width: 44px; }
+.seg button + button { border-left: 1px solid var(--line); }
+.seg button[aria-pressed="true"] { background: var(--fg); color: var(--panel); font-weight: 700; }
+.seg.big button { padding: 9px 20px; font-size: 16px; }
+.check { display: flex; gap: 8px; align-items: center; font-size: 14px; color: var(--fg-2); }
+.check input { width: 17px; height: 17px; accent-color: var(--malachite); }
+.btn { display: inline-flex; align-items: center; gap: 8px; border: 0; border-radius: 999px; padding: 11px 26px; font-size: 16px; font-weight: 700; background: var(--fg); color: var(--panel); letter-spacing: .06em; }
+.btn:hover { opacity: .9; }
+.btn.ghost { background: transparent; color: var(--fg); border: 1px solid var(--line-2); font-weight: 500; }
+.btn:disabled { opacity: .35; }
+.rules { margin: 0; padding: 0; list-style: none; font-size: 14px; color: var(--fg-2); }
+.rules li { padding: 8px 0 8px 28px; border-top: 1px solid var(--line); position: relative; line-height: 1.7; }
+.rules li:first-child { border-top: 0; }
+.rules li::before { content: attr(data-n); position: absolute; left: 0; top: 8px; font-family: var(--serif); font-weight: 900; color: var(--gold); }
+.rules b { color: var(--fg); }
+
+/* 战绩 */
+.tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 0; margin: 0 0 14px; border-top: 1px solid var(--line-2); border-bottom: 1px solid var(--line); }
+.tile { padding: 12px 14px 12px 0; }
+.tile + .tile { padding-left: 14px; border-left: 1px solid var(--line); }
+.tile .v { font-size: 25px; font-weight: 700; line-height: 1.25; font-variant-numeric: tabular-nums; }
+.tile .k { font-size: 12.5px; color: var(--fg-3); line-height: 1.5; margin-top: 2px; }
+.prose { max-width: 50em; color: var(--fg-2); margin: 0 0 10px; }
+.prose b { color: var(--fg); }
+.small { font-size: 13px; color: var(--fg-3); line-height: 1.7; }
+.linkbtn { border: 0; background: none; padding: 0; color: var(--malachite); text-decoration: underline; text-underline-offset: 3px; font-size: inherit; }
+
+/* 看股 */
+#play { scroll-margin-top: 60px; }
+.progress { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 18px; margin: 0 0 16px; }
+.dots { display: flex; gap: 6px; }
+.dots span { width: 30px; height: 30px; border-radius: 50%; border: 1.5px solid var(--line-2); display: grid; place-items: center; font-family: var(--serif); font-weight: 900; font-size: 14px; color: var(--fg-3); }
+.dots span.on { border-color: var(--fg); color: var(--fg); background: var(--card); }
+.dots span.done { background: var(--fg); color: var(--panel); border-color: var(--fg); }
+.acct { font-size: 13.5px; color: var(--fg-2); }
+.acct b { color: var(--fg); font-variant-numeric: tabular-nums; }
+.board { display: grid; grid-template-columns: minmax(0, 7fr) minmax(0, 5fr); gap: 24px 36px; align-items: start; }
+.stock { background: var(--card); border: 1px solid var(--line-2); border-radius: 14px; padding: 18px 20px 16px; }
+.stock h3 { margin: 0; font-family: var(--serif); font-weight: 900; font-size: 26px; letter-spacing: .08em; display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+.stock h3 small { font-family: var(--sans); font-weight: 400; font-size: 13px; color: var(--fg-3); letter-spacing: 0; }
+.stock .hold { margin: 4px 0 12px; font-size: 13.5px; color: var(--fg-2); }
+.inds { display: grid; gap: 0; }
+.ind { padding: 11px 0; border-top: 1px solid var(--line); }
+.ind.new { animation: flip .35s ease; background: linear-gradient(90deg, var(--hl), transparent 70%); }
+@keyframes flip { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
+.ind .top { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+.ind .nm { font-size: 13.5px; color: var(--fg-2); }
+.ind .tag { font-size: 11.5px; color: var(--gold); border: 1px solid var(--gold); border-radius: 4px; padding: 0 5px; line-height: 1.6; }
+.ind .vv { margin-left: auto; font-size: 21px; font-weight: 700; font-variant-numeric: tabular-nums; text-align: right; }
+.ind .vv small { font-size: 13px; font-weight: 400; color: var(--fg-2); }
+.ind .hint { margin: 4px 0 0; font-size: 12.5px; color: var(--fg-3); line-height: 1.65; }
+.pbar { display: flex; align-items: center; gap: 8px; margin: 6px 0 0; font-size: 12px; color: var(--fg-3); }
+.pbar .tr { position: relative; flex: 1; height: 6px; border-radius: 3px; background: linear-gradient(90deg, var(--panel-2), var(--sea-2)); max-width: 260px; }
+.pbar .tr i { position: absolute; top: -4px; width: 4px; height: 14px; border-radius: 2px; background: var(--fg); transform: translateX(-2px); }
+.pbar .tx { min-width: 9em; }
+.spark { display: block; margin: 6px 0 0; }
+.spark text { font-size: 10.5px; fill: var(--fg-3); font-family: var(--sans); }
+.empty { padding: 14px 0 6px; font-size: 13.5px; color: var(--fg-3); border-top: 1px solid var(--line); }
+
+.deck h4 { margin: 0 0 2px; font-family: var(--serif); font-weight: 600; font-size: 17px; }
+.deck .left { margin: 0 0 10px; font-size: 13px; color: var(--fg-3); }
+.deck .left b { color: var(--gold); font-size: 15px; }
+.cat { margin: 0 0 10px; }
+.cat .ck { font-size: 12px; color: var(--fg-3); letter-spacing: .1em; margin-bottom: 4px; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { border: 1px solid var(--line-2); background: var(--card); border-radius: 999px; padding: 4px 12px; font-size: 13.5px; color: var(--fg); line-height: 1.6; }
+.chip:hover:not(:disabled) { border-color: var(--fg); }
+.chip:disabled { opacity: .4; }
+.chip.got { background: var(--hl); border-color: transparent; color: var(--fg-2); opacity: 1; }
+
+.decide { margin: 18px 0 0; padding: 16px 0 0; border-top: 1px solid var(--line-2); }
+.decide h4 { margin: 0 0 8px; font-family: var(--serif); font-weight: 600; font-size: 17px; }
+.decide .seg button[data-a="sell"][aria-pressed="true"] { background: var(--down); color: #fff; }
+.decide .seg button[data-a="buy"][aria-pressed="true"] { background: var(--up); color: #fff; }
+.ratio { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; margin: 12px 0 0; }
+.ratio .k { font-size: 13px; color: var(--fg-3); }
+.ratio button { border: 1px solid var(--line-2); background: var(--card); border-radius: 8px; padding: 3px 0; width: 52px; font-size: 13.5px; font-variant-numeric: tabular-nums; }
+.ratio button[aria-pressed="true"] { background: var(--fg); color: var(--panel); border-color: var(--fg); font-weight: 700; }
+.plan { margin: 12px 0 0; font-size: 14px; color: var(--fg-2); min-height: 1.8em; }
+.plan b { color: var(--fg); font-variant-numeric: tabular-nums; }
+.warn { margin: 10px 0 0; padding: 8px 12px; border-radius: 8px; background: var(--hl); font-size: 13.5px; color: var(--fg); }
+.nextrow { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; margin: 16px 0 0; }
+
+/* 揭晓 */
+.verdict { font-family: var(--serif); font-weight: 600; font-size: clamp(19px, 2.2vw, 24px); line-height: 1.55; margin: 0 0 16px; max-width: 34em; text-wrap: balance; }
+.when { font-size: 14px; color: var(--fg-2); margin: 0 0 14px; }
+.when b { color: var(--fg); }
+.fig { margin: 22px 0 0; }
+.fig h3 { margin: 0; font-family: var(--serif); font-weight: 600; font-size: 17px; line-height: 1.5; }
+.fig .sub { margin: 2px 0 8px; font-size: 13px; color: var(--fg-3); line-height: 1.6; max-width: 52em; }
+.plot svg { display: block; overflow: visible; }
+.plot text { font-size: 11.5px; fill: var(--fg-3); font-family: var(--sans); }
+.plot .lab { fill: var(--fg); font-size: 12.5px; font-weight: 700; }
+.plot .grid { stroke: var(--line); shape-rendering: crispEdges; }
+.plot .zero { stroke: var(--line-2); shape-rendering: crispEdges; }
+.hp { paint-order: stroke; stroke: var(--panel); stroke-width: 4px; stroke-linejoin: round; }
+.legend { display: flex; flex-wrap: wrap; gap: 4px 16px; margin: 0 0 6px; font-size: 12.5px; color: var(--fg-2); }
+.legend i { display: inline-block; width: 16px; height: 3px; border-radius: 2px; margin-right: 6px; vertical-align: 3px; }
+.legend i.dash { background: repeating-linear-gradient(90deg, var(--mk) 0 4px, transparent 4px 7px); }
+.cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 16px; margin: 8px 0 0; }
+.rc { background: var(--card); border: 1px solid var(--line-2); border-radius: 14px; padding: 16px 18px; }
+.rc .hd { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+.rc .lt { font-family: var(--serif); font-weight: 900; font-size: 15px; color: var(--fg-3); }
+.rc .nm { font-family: var(--serif); font-weight: 900; font-size: 22px; letter-spacing: .04em; }
+.rc .cd { font-size: 13px; color: var(--fg-3); }
+.rc .r { margin-left: auto; font-size: 24px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.rc .meta { font-size: 13px; color: var(--fg-2); margin: 2px 0 8px; }
+.rc .meta b { color: var(--fg); }
+.rc .note { font-size: 12.5px; color: var(--fg-3); margin: 6px 0 0; }
+.rc .links { font-size: 13px; margin: 10px 0 0; display: flex; flex-wrap: wrap; gap: 4px 14px; }
+.rc details { margin: 10px 0 0; border-top: 1px solid var(--line); padding-top: 8px; }
+.rc summary { cursor: pointer; font-size: 13.5px; color: var(--fg-2); }
+.all { width: 100%; border-collapse: collapse; font-size: 13px; margin: 6px 0 0; }
+.all td { padding: 4px 6px 4px 0; border-bottom: 1px solid var(--line); vertical-align: top; }
+.all td.v { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; color: var(--fg); }
+.all td.p { width: 64px; color: var(--fg-3); font-size: 12px; text-align: right; white-space: nowrap; }
+.all tr.cat td { padding-top: 10px; font-size: 11.5px; letter-spacing: .1em; color: var(--fg-3); border-bottom: 0; }
+.all tr.seen td { background: var(--hl); }
+.all tr.seen td:first-child { box-shadow: inset 3px 0 0 var(--gold); padding-left: 6px; }
+table.res { width: 100%; border-collapse: collapse; font-size: 14px; margin: 4px 0 0; }
+table.res th, table.res td { padding: 7px 10px; text-align: right; border-bottom: 1px solid var(--line); white-space: nowrap; font-variant-numeric: tabular-nums; }
+table.res th { font-weight: 500; color: var(--fg-3); font-size: 12.5px; }
+table.res th:first-child, table.res td:first-child { text-align: left; padding-left: 0; }
+table.res tr.sum td { font-weight: 700; border-top: 1px solid var(--line-2); }
+.scroll { overflow-x: auto; }
+.rankbox { margin: 0 0 18px; padding: 12px 16px; border: 1px solid var(--line-2); border-radius: 12px; background: var(--card); font-size: 14.5px; }
+.rankbox:empty { display: none; }
+.rankbox p { margin: 0 0 6px; }
+.rankbox p:last-child { margin-bottom: 0; }
+.rankbox .rk { font-size: 16px; }
+.rankbox .nextrow { margin: 8px 0 0; }
+.nickrow { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin: 8px 0 0; }
+.nickrow input { border: 1px solid var(--line-2); background: var(--panel); border-radius: 10px; padding: 9px 12px; font-size: 16px; width: 12em; max-width: 100%; }
+table.res.lb tr.me td { background: var(--hl); }
+table.res.lb th:nth-child(2), table.res.lb td:nth-child(2) { text-align: left; }
+.mhist { margin: 4px 0 2px; }
+.mhist svg text, .dchart svg text { font-size: 11px; fill: var(--fg-3); font-family: var(--sans); }
+.mhist svg text.lab, .dchart svg text.lab { fill: var(--fg); font-weight: 700; font-size: 12px; }
+.dchart .zero { stroke: var(--line-2); }
+.games { display: inline-flex; gap: 2px; margin: 0 0 14px; padding: 3px; border: 1px solid var(--line-2); border-radius: 999px; background: var(--panel); }
+.games a { padding: 3px 13px; border-radius: 999px; font-size: 13.5px; color: var(--fg-2); text-decoration: none; white-space: nowrap; }
+.games a:hover { color: var(--fg); }
+.games a.on { background: var(--fg); color: var(--panel); font-weight: 700; }
+.again { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; margin: 22px 0 0; }
+#copied { font-size: 13px; color: var(--malachite); }
+
+/* 指标说明 */
+.glossary { columns: 2 340px; column-gap: 40px; margin: 0; padding: 0; list-style: none; }
+.glossary li { break-inside: avoid; padding: 8px 0; border-top: 1px solid var(--line); font-size: 13.5px; color: var(--fg-2); line-height: 1.7; }
+.glossary li b { color: var(--fg); display: block; font-size: 14px; }
+
+.pager { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 12px; max-width: 1180px; margin: 0 auto; padding: 32px max(22px, env(safe-area-inset-right, 0px)) 0 max(22px, env(safe-area-inset-left, 0px)); }
+.pager a { display: block; border: 1px solid var(--line-2); border-radius: 12px; padding: 12px 16px; text-decoration: none; color: var(--fg); }
+.pager a:hover { border-color: var(--malachite); }
+.pager .k { font-size: 12px; color: var(--fg-3); }
+.pager b { font-family: var(--serif); font-size: 18px; font-weight: 900; letter-spacing: .08em; }
+.pager span { display: block; font-size: 12.5px; color: var(--fg-2); margin-top: 2px; }
+footer { max-width: 1180px; margin: 0 auto; padding: 40px max(22px, env(safe-area-inset-right, 0px)) 64px max(22px, env(safe-area-inset-left, 0px)); font-size: 13px; line-height: 1.8; color: var(--fg-3); }
+footer h2 { font-family: var(--serif); font-size: 17px; color: var(--fg); margin: 0 0 8px; }
+footer ul { margin: 0; padding-left: 1.2em; max-width: 64em; }
+footer p { margin: 14px 0 0; }
+#tt { position: fixed; z-index: 50; pointer-events: none; background: var(--tip); color: var(--tip-fg); font-size: 12.5px; line-height: 1.55; padding: 6px 9px; border-radius: 6px; max-width: 240px; }
+
+@media (max-width: 900px) {
+  #hero .in, .setup, .board { grid-template-columns: 1fr; }
+  #bar { gap: 8px; }
+  #bar .home span { display: none; }
+  #bar nav a { padding: 6px 7px; }
+  .sec > h2 { font-size: 26px; }
+  .cards { grid-template-columns: 1fr; }
+}
+@media (max-width: 520px) {
+  body { font-size: 14.5px; }
+  #bar .go { display: none; }
+  .stock { padding: 14px 14px 12px; }
+  .ind .vv { font-size: 19px; }
+  .seg button { padding: 7px 12px; }
+  .tile .v { font-size: 21px; }
+  .rc .r { font-size: 21px; }
+  .tiles { grid-template-columns: 1fr 1fr; }
+  .tile:nth-child(odd) { padding-left: 0; border-left: 0; }
+  .tile:nth-child(n+3) { border-top: 1px solid var(--line); }
+}
+@media (prefers-reduced-motion: reduce) { .ind.new { animation: none; } html { scroll-behavior: auto; } }
+</style>
+</head>
+<body>
+<header id="bar">
+  <a class="home" href="index.html"><span>A股疆域图</span><b>持有三月</b></a>
+  <nav aria-label="本页">
+    <a href="#kaiju">开局</a><a href="#paihang">排行</a><a href="#zhanji">战绩</a><a href="#zhibiao">指标</a><a href="#koujing">口径</a>
+  </nav>
+  <a class="go" href="index.html">打开地图</a>
+</header>
+
+<section id="hero" aria-label="持有三月">
+  <div class="in">
+    <div>
+      <nav class="games" aria-label="三个游戏"><a href="chiyou.html">持有一月</a><a href="sanyue.html" class="on" aria-current="page">持有三月</a><a href="yinian.html">持有一年</a></nav>
+      <p class="kick">用真实历史练眼力 · 一个小游戏</p>
+      <h1>持有三月</h1>
+      <p class="lede">你有一个 <b>100 万元</b>的账户：大约一半是现金，另一半差不多平均地买成了几只股票。每只股票来自 <b>2013–2026 年</b>里随机的一天，你看不到名字和日期，只能<b>翻开最多五项指标</b>，然后决定加仓、减仓还是不动；手里的现金<b>全部</b>可以拿来加仓。<b>三个月后</b>揭晓，每只和它自己同期的大盘比，再往后看一年、三年。</p>
+    </div>
+    <div class="luck" id="luck">
+      <h2>三个月，运气仍然占大头</h2>
+      <p class="sub">题库里两类公司跑赢大盘的比例（大盘是全部A股按市值加权，含分红）：</p>
+      <div id="luckTable"></div>
+      <p class="foot">三个月里通常会出一份新的财报，但价格的起伏仍然盖过了生意的差别：两类公司照样难分高下。<b>别用一局的输赢给自己的判断打分</b>，到“战绩”里看你的操作一年、三年后还站不站得住。</p>
+    </div>
+  </div>
+</section>
+
+<main>
+  <section class="sec" id="kaiju">
+    <h2>开局</h2>
+    <p class="sub">每只股票各自来自随机的一天，持有三个月，这样输赢不取决于某一个季度大盘的涨跌。指标都是那一天能看到的数字：年报按当时已经披露的最近一期，价格到那天收盘为止。</p>
+    <div class="setup">
+      <div>
+        <div class="opt"><div class="k">账户里现在持有几只股票</div>
+          <div class="seg big" id="optN" role="group" aria-label="持股数"></div></div>
+        <div class="opt"><div class="k">从哪里抽</div>
+          <div class="seg" id="optPool" role="group" aria-label="选股范围">
+            <button data-v="all" aria-pressed="true">全部A股</button><button data-v="big" aria-pressed="false">只看大公司（当时市值前300）</button>
+          </div></div>
+        <div class="opt"><label class="check"><input type="checkbox" id="optPct" checked> 翻开指标时，显示它在当天全部A股里的位置</label>
+          <label class="check"><input type="checkbox" id="optHint" checked> 显示“这个数字怎么会骗人”的提示</label></div>
+        <button class="btn" id="start">开局</button>
+        <p class="small" id="resume" hidden></p>
+      </div>
+      <ol class="rules">
+        <li data-n="一"><b>账户。</b>总资产 100 万元。大约 50 万元按整手（100 股）平均买成几只股票，股价不同，所以各只不完全一样多；其余是可用现金。</li>
+        <li data-n="二"><b>翻牌。</b>每只股票先随机亮出一项指标，你还可以从二十多项里再翻最多五项，一项一项地翻，翻够了随时可以停。</li>
+        <li data-n="三"><b>交易。</b>卖出按持仓的比例，买入按<b>当时全部可用现金</b>的比例，都按整手、在那天收盘价成交，买卖各扣 0.1% 费用。前面卖出的钱后面可以用：卖光前四只，最后一只几乎可以满仓。涨停封板的买不进，跌停封板的卖不出。</li>
+        <li data-n="四"><b>揭晓。</b>每只股票各自持有三个月（到三个月后那个月的最后一个交易日），盈亏拆成“原来的持仓”和“你的操作”两部分，每只和它自己同期的大盘比；再告诉你它们是谁、是哪一天，以及一年、三年后走到了哪里。</li>
+        <li data-n="五"><b>排行。</b>按“你的操作带来”排名：一动不动是 0，加减仓多赚或少赚的钱才算数。每局会匿名记录；进入所有局的前 100 名，可以选择晒战绩、留个昵称。</li>
+      </ol>
+    </div>
+  </section>
+
+  <section class="sec" id="play" hidden></section>
+  <section class="sec" id="reveal" hidden></section>
+
+  <section class="sec" id="paihang">
+    <h2>排行榜</h2>
+    <p class="sub">所有玩过「持有三月」的局，按“你的操作带来”排名的前 100 名。一动不动是 0；抽到哪只股票的运气被扣掉了，只算你加减仓的结果。只有选择晒战绩的，才显示昵称。</p>
+    <div id="board"></div>
+  </section>
+
+  <section class="sec" id="zhanji">
+    <h2>战绩</h2>
+    <p class="sub">这台设备上玩过的「持有三月」。三个月后的输赢仍有很多运气；一年、三年后的结果，才更接近你的判断本身。</p>
+    <div id="record"></div>
+  </section>
+
+  <section class="sec" id="zhibiao">
+    <h2>二十八项指标</h2>
+    <p class="sub">每一项都是行情软件或财报里常见的数字。下面写的是它的口径，和它最常见的误导。说明由 AI（Claude）编写，会错，也会过时。</p>
+    <ul class="glossary" id="glossary"></ul>
+  </section>
+</main>
+
+<nav class="pager" aria-label="其他页面">
+  <a href="index.html"><div class="k">地图</div><b>A股疆域图</b><span>二十六年的行业版图</span></a>
+  <a href="guanchao.html"><div class="k">规律</div><b>观潮</b><span>从地图里读出的六条规律</span></a>
+  <a href="faxian.html"><div class="k">把注意力放在哪里</div><b>发现好公司</b><span>学科、产业、公司、价格筛四遍</span></a>
+  <a href="zhencha.html"><div class="k">先排除谁</div><b>财报侦探</b><span>财务指标与财报里的线索</span></a>
+  <a href="ganggu.html"><div class="k">对岸</div><b>港股通</b><span>从港股通里挑公司</span></a>
+  <a href="chiyou.html"><div class="k">练眼力</div><b>持有一月</b><span>一个月后揭晓</span></a>
+  <a href="yinian.html"><div class="k">练眼力</div><b>持有一年</b><span>一年后揭晓</span></a>
+</nav>
+
+<footer id="koujing">
+  <h2>口径与边界</h2>
+  <ul id="fineprint"></ul>
+  <p>本页不构成投资建议。 <a href="index.html">回到地图</a> · <a href="faxian.html">发现好公司</a> · <a href="zhencha.html">财报侦探</a> · <a href="https://github.com/wanglu2016/agu-jiangyu" target="_blank" rel="noopener">源代码、数据来源与离线版</a></p>
+</footer>
+
+<script>window.AGU_CY_GAME = {"id": 3, "store": "agu-chiyou3-v1", "luck": "三个月的结果，运气仍占很大一部分"};</script>
+<script src="assets/chiyou-data.js"></script>
+<script src="assets/chiyou-ext.js"></script>
+<script src="assets/chiyou-config.js"></script>
+<script src="assets/chiyou.js"></script>
+</body>
+</html>
