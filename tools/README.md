@@ -1,6 +1,6 @@
 # 数据处理脚本
 
-把三份公开数据整理成网页用的 `assets/data.js`，以及“发现好公司”“财报侦探”页用的 `assets/quality.js`；“港股通”页用的 `assets/hk.js` 来自手工抄录的港股快照；“持有一月”“持有三月”“持有一年”三页用的 `assets/chiyou-data.js`、`assets/chiyou-ext.js` 由日线行情和前面生成的数据合成。所有路径都相对于本目录：原始数据放 `input/`，中间结果写到 `out/`（两者都不进仓库）。
+把三份公开数据整理成网页用的 `assets/data.js`，以及“发现好公司”“财报侦探”页用的 `assets/quality.js`；“港股通”页用的 `assets/hk.js` 来自手工抄录的港股快照；“持有一月”“持有三月”“持有一年”三页用的 `assets/chiyou-data.js`、`assets/chiyou-ext.js`，以及“看数”页用的 `assets/ks/`，由日线行情和前面生成的数据合成。所有路径都相对于本目录：原始数据放 `input/`，中间结果写到 `out/`（两者都不进仓库）。
 
 ## 准备输入
 
@@ -30,6 +30,7 @@ python3 make_hk.py           # 10b. 港股快照（hk/*.csv）→ ../assets/hk.j
 python3 make_chiyou.py       # 10c. 小游戏题库：逐月抽题、算指标和此后的回报 → ../assets/chiyou-data.js、../assets/chiyou-ext.js
 python3 make_chiyou_pages.py # 10c'. 用 chiyou-page.html 模板生成三个游戏页 → ../chiyou.html、../sanyue.html、../yinian.html
 python3 make_chiyou_sql.py   # 10d. 排行榜后端：chiyou-schema.sql + 题库答案表 → chiyou-supabase.sql（在 Supabase 的 SQL Editor 里运行）
+python3 make_kanshu.py       # 10e. 看数：全部公司每个月末的 28 项指标与分位，并与题库逐项核对 → ../assets/ks/（要先 pip install pypinyin）
 python3 make_chars.py        # 11. 统计页面和数据用字
 python3 make_fonts.py        # 12. 裁剪字体 → ../assets/fonts/*.woff2
 python3 make_zip.py          # 13. 打包离线版 → ../download/agu-jiangyu-site.zip
@@ -49,6 +50,7 @@ python3 make_zip.py          # 13. 打包离线版 → ../download/agu-jiangyu-s
 - `make_chiyou.py` 另外写 `chiyou-ext.js`：同一份题库的三个月回报、三个月里的走势、三个月和一年回报的分布与中位数。`chiyou-data.js` 的内容不变，所以三个游戏共用一份题库，持有一月的旧答案也不受影响。
 - `chiyou-page.html`、`make_chiyou_pages.py`：三个游戏页的模板和生成脚本。三页共用 `../assets/chiyou.js`，页面里的 `window.AGU_CY_GAME` 告诉脚本持有几个月、战绩存在浏览器的哪个位置；改页面文字就改模板或脚本里的 GAMES，再运行一次。
 - `chiyou-schema.sql`、`make_chiyou_sql.py`、`chiyou-supabase.sql`：三个游戏排行榜的后端。`chiyou-schema.sql` 是手写的建表和函数（cy_submit 按题库答案重算盈亏并排名、cy_share 晒战绩、cy_top 读前100名），`make_chiyou_sql.py` 把它和题库答案表（题号、股价、一个月/三个月/一年后的回报、涨跌停，取自 `chiyou-data.js` 和 `chiyou-ext.js`）合成 `chiyou-supabase.sql`。对局表的 `game` 列（1、3、12）区分是哪个游戏，`cy_top(p_game)` 只排这个游戏的局。重新生成题库后，要把 `make_chiyou.py` 里的题库版本号加一，重跑 10c、10d，并在 Supabase 里再运行一次 `chiyou-supabase.sql`；旧版本的答案保留，旧对局不受影响。
+- `make_kanshu.py`：和 `make_chiyou.py` 用同样的输入、同样的公式，只是每个月对图上的全部公司算（题库每月只抽 45 家），分位仍以“上市满一年、当天有交易”的公司为参照。运行到最后会拿 `chiyou-data.js` 的 7,225 道题逐项核对数值和分位，不一致就停下。输出 `../assets/ks/index.js`（月份、海平面、同期大盘、全部公司的代码/名称/拼音首字母/曾用名、A+H 对照、港股快照）、`s/<代码>.js`（一只股票逐月的数值和分位，zlib 压缩后 base64）和 `m/<年-月>.js`（一个月里全部公司的分位，供“在全部A股里找”）。格式写在脚本里的 `pack_stock()`、`pack_month()` 注释中；网页用 `<script>` 加载，所以离线双击也能用。
 - `make_hk.py`：读 `hk/ah_YYYYMMDD.csv`（A+H公司的两地股价，从经济通“AH股表现”页抄录，脚本用页面给出的溢价逐行校验）和 `hk/hk_YYYYMMDD.csv`（港股大公司的股价、市值、周息率、市盈率），加上脚本里手工标注的公司类型、所属的国、股权结构（W/V/S）、是否在港股通、分类，生成 `../assets/hk.js`。更新快照时换掉两个 CSV、改脚本开头的日期和汇率即可。
 - “财报侦探”的卷宗、附注线索，“港股通”的规则、暗礁和分类说明写在 `../assets/zhencha.js`、`../assets/ganggu.js` 和对应的 html 里，不由脚本生成。
 - “发现好公司”页里的前沿卡片（学科、节点、判断）和高校专业数字写在 `../assets/faxian.js` 里，不由脚本生成。

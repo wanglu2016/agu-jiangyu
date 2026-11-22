@@ -460,7 +460,7 @@ function drawCards() {
       <div class="hd"><span class="lt">股票${LETTER[i]}</span><span class="nm">${esc(c[1])}</span><span class="cd">${c[0]}</span><span class="r ${cls(v)}">${sgn(v)}</span></div>
       <div class="meta"><b>${dateCN(C.d0[mi])}</b> 到 ${dateCN(END[GH](mi))} · ${esc(sec ? sec[1] : '')} · ${bd}<br>你的操作：<b>${actText(acts[i], false)}</b> · 那天收盘价 ${pxOf(r).toFixed(2)} 元</div>
       <div class="mhist"></div><div class="dchart"></div>${notes.length ? `<p class="note">${notes.join('')}</p>` : ''}
-      <div class="links"><a href="index.html#co=${c[0]}">在地图上看这座城</a><a href="index.html#${C.months[mi]}">那个月的地图</a><a href="faxian.html#co=${c[0]}">财报小传</a><a href="zhencha.html#co=${c[0]}">查疑点</a></div>
+      <div class="links"><a href="index.html#co=${c[0]}">在地图上看这座城</a><a href="index.html#${C.months[mi]}">那个月的地图</a><a href="faxian.html#co=${c[0]}">财报小传</a><a href="zhencha.html#co=${c[0]}">查疑点</a><a href="kanshu.html#s=${c[0]}&d=${C.months[mi]}&k=turn,cap,vol,pb,m3,m1">那天的指标与分位</a></div>
       <details ${rows.length === 1 ? 'open' : ''}><summary>当时的二十八项指标（你看到了 ${seen.size} 项）</summary><table class="all">${tbl}</table></details>
     </article>`;
   }).join('');

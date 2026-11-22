@@ -1,0 +1,425 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>看数 · A股疆域图</title>
+<meta name="description" content="任选A股（A+H公司也可以用H股代码找）、一个日期和若干项指标，列出每只股票在当天全部A股里的数值和分位，再把分位平均成一个得分；不选日期，就看得分怎么随时间变化。2013年5月到2026年10月每个月末，和“持有一月/三月/一年”小游戏同一口径，并给出三套策略的建议。">
+<meta property="og:title" content="看数 · 每只股票的28项指标与分位">
+<meta property="og:description" content="选股票、选日期、勾指标：数值、分位、平均得分和走势，一张表看清。">
+<meta property="og:image" content="assets/preview-kanshu.jpg">
+<meta name="theme-color" content="#e8e1d1">
+<link rel="icon" href="assets/icon.svg" type="image/svg+xml">
+<style>html,body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
+<link rel="stylesheet" href="assets/fonts/fonts.css">
+<style>
+/* 看数：一张对照表。墨是数字，朱是涨，石绿是跌（红涨绿跌），金色标出你正在看的那一格。 */
+:root {
+  --sea: #e8e1d1; --sea-2: #ddd4c0; --panel: #f6f3ec; --panel-2: #ece7dc; --card: #fbf9f4;
+  --line: rgba(48, 42, 30, 0.13); --line-2: rgba(48, 42, 30, 0.28);
+  --fg: #221f19; --fg-2: #514b40; --fg-3: #7c7567;
+  --gold: #8f6418; --malachite: #2f7a63; --ink: #2d3a4a;
+  --up: #c0392b; --down: #23825f; --up-bg: rgba(192, 57, 43, 0.10); --down-bg: rgba(35, 130, 95, 0.10);
+  --hl: rgba(143, 100, 24, 0.16); --track: #e3dccd;
+  --tip: rgba(34, 31, 25, 0.95); --tip-fg: #f3efe4;
+  --serif: "Noto Serif SC", "Source Han Serif SC", "Songti SC", "STSong", serif;
+  --sans: "Noto Sans SC", "Source Han Sans SC", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --sea: #1b1913; --sea-2: #24211a; --panel: #13120e; --panel-2: #1d1b15; --card: #1a1813;
+    --line: rgba(235, 225, 205, 0.11); --line-2: rgba(235, 225, 205, 0.26);
+    --fg: #ece6d6; --fg-2: #bdb5a4; --fg-3: #8f877a;
+    --gold: #d8b66c; --malachite: #79b9a0; --ink: #9db4cf;
+    --up: #ef6a55; --down: #4fbf92; --up-bg: rgba(239, 106, 85, 0.13); --down-bg: rgba(79, 191, 146, 0.13);
+    --hl: rgba(216, 182, 108, 0.16); --track: #2e2a22;
+    --tip: rgba(236, 231, 216, 0.97); --tip-fg: #14120e; color-scheme: dark;
+  }
+}
+html { scroll-behavior: smooth; scroll-padding-top: 64px; }
+body { background: var(--panel); color: var(--fg); font-family: var(--sans); font-size: 15px; line-height: 1.8; -webkit-font-smoothing: antialiased; }
+a { color: var(--malachite); text-underline-offset: 3px; }
+button, input, select { font: inherit; color: inherit; }
+button { cursor: pointer; }
+button:disabled { cursor: default; }
+:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+.num { font-variant-numeric: tabular-nums; }
+.up { color: var(--up); } .down { color: var(--down); } .flat { color: var(--fg-2); }
+.small { font-size: 13px; color: var(--fg-3); line-height: 1.7; }
+
+#bar { position: sticky; top: 0; z-index: 30; display: flex; align-items: center; gap: 14px; height: 52px; padding: 0 max(18px, env(safe-area-inset-right, 0px)) 0 max(18px, env(safe-area-inset-left, 0px)); background: var(--panel); border-bottom: 1px solid var(--line); }
+#bar .home { font-family: var(--serif); font-weight: 600; letter-spacing: .18em; font-size: 14px; color: var(--fg-2); text-decoration: none; white-space: nowrap; }
+#bar .home b { color: var(--fg); font-weight: 900; margin-left: .6em; letter-spacing: .1em; }
+#bar nav { display: flex; gap: 2px; margin-left: auto; overflow-x: auto; scrollbar-width: none; }
+#bar nav::-webkit-scrollbar { display: none; }
+#bar nav a { padding: 6px 10px; font-size: 14px; color: var(--fg-2); text-decoration: none; white-space: nowrap; }
+#bar nav a:hover { color: var(--fg); }
+#bar .go { flex: none; padding: 6px 14px; border-radius: 999px; border: 1px solid var(--malachite); color: var(--malachite); text-decoration: none; font-size: 13.5px; white-space: nowrap; }
+#bar .go:hover { background: var(--malachite); color: var(--panel); }
+
+#hero { background: var(--sea); border-bottom: 1px solid var(--line-2); }
+#hero .in { max-width: 1240px; margin: 0 auto; display: grid; grid-template-columns: minmax(0, 6fr) minmax(0, 5fr); gap: 24px 64px; align-items: end; padding: clamp(28px, 5vh, 56px) max(22px, env(safe-area-inset-right, 0px)) clamp(26px, 4vh, 44px) max(22px, env(safe-area-inset-left, 0px)); }
+#hero .kick { font-size: 13px; letter-spacing: .2em; color: var(--gold); font-weight: 700; margin: 0 0 10px; }
+#hero h1 { margin: 0; font-family: var(--serif); font-weight: 900; font-size: clamp(46px, 6.8vw, 86px); line-height: 1.06; letter-spacing: .14em; }
+#hero .lede { margin: 16px 0 0; max-width: 32em; font-size: clamp(15px, 1.5vw, 17px); line-height: 1.9; color: var(--fg-2); }
+#hero .lede b { color: var(--fg); }
+.howto { border-top: 1px solid var(--line-2); font-size: 13.5px; color: var(--fg-2); }
+.howto h2 { margin: 12px 0 6px; font-family: var(--serif); font-size: 18px; font-weight: 600; color: var(--fg); }
+.howto ol { margin: 0; padding-left: 1.3em; }
+.howto li { margin: 3px 0; line-height: 1.7; }
+.howto b { color: var(--fg); }
+
+main { max-width: 1240px; margin: 0 auto; padding: 0 max(22px, env(safe-area-inset-right, 0px)) 0 max(22px, env(safe-area-inset-left, 0px)); }
+.sec { padding: 34px 0 40px; border-bottom: 1px solid var(--line-2); }
+.sec > h2 { margin: 0 0 4px; font-family: var(--serif); font-weight: 900; font-size: 28px; letter-spacing: .1em; }
+.sec > .sub { margin: 0 0 18px; color: var(--fg-3); font-size: 13.5px; max-width: 56em; }
+
+/* 选择区 */
+.ctl { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: 26px 44px; align-items: start; }
+.blk { margin: 0 0 22px; }
+.blk:last-child { margin-bottom: 0; }
+.blk > .k { font-size: 13px; color: var(--fg-3); margin: 0 0 6px; display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: baseline; }
+.blk > .k b { font-size: 15px; color: var(--fg); font-family: var(--serif); font-weight: 900; letter-spacing: .06em; }
+.picker { position: relative; }
+.picker input { width: 100%; box-sizing: border-box; border: 1px solid var(--line-2); background: var(--card); border-radius: 10px; padding: 10px 12px; font-size: 16px; }
+.picker input:focus { outline: none; border-color: var(--fg); }
+#sug { position: absolute; z-index: 25; left: 0; right: 0; top: calc(100% + 4px); margin: 0; padding: 4px; list-style: none; background: var(--card); border: 1px solid var(--line-2); border-radius: 10px; box-shadow: 0 10px 30px rgba(0, 0, 0, .14); max-height: 360px; overflow-y: auto; }
+#sug li { display: flex; align-items: baseline; gap: 10px; padding: 7px 10px; border-radius: 7px; cursor: pointer; font-size: 14.5px; }
+#sug li[aria-selected="true"], #sug li:hover { background: var(--hl); }
+#sug li .cd { font-size: 12.5px; color: var(--fg-3); font-variant-numeric: tabular-nums; }
+#sug li .tg { margin-left: auto; font-size: 11.5px; color: var(--fg-3); white-space: nowrap; }
+#sug li.none { color: var(--fg-3); cursor: default; }
+.picked { display: flex; flex-wrap: wrap; gap: 6px; margin: 10px 0 0; min-height: 32px; }
+.pk { display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--line-2); background: var(--card); border-radius: 999px; padding: 2px 4px 2px 12px; font-size: 14px; line-height: 1.7; }
+.pk .cd { font-size: 12px; color: var(--fg-3); font-variant-numeric: tabular-nums; }
+.pk button { border: 0; background: transparent; width: 24px; height: 24px; border-radius: 50%; color: var(--fg-3); font-size: 15px; line-height: 1; }
+.pk button:hover { background: var(--panel-2); color: var(--fg); }
+.tag { display: inline-block; font-size: 11px; line-height: 1.5; padding: 0 5px; border-radius: 4px; border: 1px solid var(--line-2); color: var(--fg-2); font-weight: 500; white-space: nowrap; vertical-align: 1px; }
+.tag.h { border-color: var(--malachite); color: var(--malachite); }
+.tag.x { border-color: var(--fg-3); color: var(--fg-3); }
+.tag.f { border-color: var(--gold); color: var(--gold); }
+.rowb { display: flex; flex-wrap: wrap; gap: 8px; margin: 10px 0 0; }
+.mini { border: 1px solid var(--line-2); background: var(--card); border-radius: 999px; padding: 3px 12px; font-size: 13.5px; color: var(--fg-2); }
+.mini:hover:not(:disabled) { border-color: var(--fg); color: var(--fg); }
+.mini:disabled { opacity: .4; }
+.seg { display: inline-flex; border: 1px solid var(--line-2); border-radius: 10px; overflow: hidden; background: var(--card); }
+.seg button { border: 0; background: transparent; padding: 7px 14px; font-size: 14px; color: var(--fg-2); }
+.seg button + button { border-left: 1px solid var(--line); }
+.seg button[aria-pressed="true"] { background: var(--fg); color: var(--panel); font-weight: 700; }
+.daterow { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; margin: 10px 0 0; }
+.daterow select { border: 1px solid var(--line-2); background: var(--card); border-radius: 10px; padding: 6px 10px; font-size: 15px; font-variant-numeric: tabular-nums; }
+.daterow .step { border: 1px solid var(--line-2); background: var(--card); border-radius: 8px; width: 34px; height: 34px; font-size: 13px; color: var(--fg-2); }
+.daterow .step:disabled { opacity: .35; }
+.daterow input[type=range] { flex: 1 1 200px; min-width: 160px; accent-color: var(--fg); }
+.daterow.off { opacity: .45; }
+.dinfo { margin: 8px 0 0; font-size: 13px; color: var(--fg-3); line-height: 1.7; }
+.dinfo b { color: var(--fg); font-weight: 600; }
+.presets { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 12px; }
+.presets button { border: 1px solid var(--gold); background: transparent; color: var(--gold); border-radius: 999px; padding: 3px 12px; font-size: 13.5px; }
+.presets button:hover, .presets button[aria-pressed="true"] { background: var(--gold); color: var(--panel); }
+.presets button.plain { border-color: var(--line-2); color: var(--fg-2); }
+.presets button.plain:hover { background: var(--panel-2); color: var(--fg); }
+.cats { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 4px 22px; }
+.cat .ck { font-size: 12px; color: var(--fg-3); letter-spacing: .1em; margin: 6px 0 4px; }
+.chips { display: flex; flex-wrap: wrap; gap: 5px; }
+.chip { border: 1px solid var(--line-2); background: var(--card); border-radius: 999px; padding: 3px 11px; font-size: 13.5px; color: var(--fg); line-height: 1.6; }
+.chip:hover { border-color: var(--fg); }
+.chip[aria-pressed="true"] { background: var(--fg); color: var(--panel); border-color: var(--fg); }
+.chip .nop { font-size: 11px; opacity: .7; margin-left: 3px; }
+.chosen { margin: 14px 0 0; padding: 10px 0 0; border-top: 1px solid var(--line); font-size: 13.5px; }
+.chosen .hd { display: flex; flex-wrap: wrap; gap: 4px 12px; align-items: baseline; color: var(--fg-3); font-size: 13px; margin-bottom: 6px; }
+.chosen .hd b { color: var(--fg); }
+.chosen ul { margin: 0; padding: 0; list-style: none; display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 4px 18px; }
+.chosen li { display: flex; align-items: center; gap: 8px; padding: 3px 0; border-bottom: 1px dashed var(--line); }
+.chosen li .nm { flex: 1; }
+.chosen li .dir { border: 1px solid var(--line-2); background: var(--card); border-radius: 6px; padding: 0 8px; font-size: 12.5px; color: var(--fg-2); }
+.chosen li .dir[aria-pressed="true"] { border-color: var(--gold); color: var(--gold); background: var(--hl); }
+.chosen li .x { border: 0; background: transparent; color: var(--fg-3); width: 22px; height: 22px; border-radius: 50%; }
+.chosen li .x:hover { background: var(--panel-2); color: var(--fg); }
+.chosen .empty { color: var(--fg-3); }
+
+/* 结果 */
+.reshead { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 18px; margin: 0 0 12px; }
+.reshead h2 { margin: 0; font-family: var(--serif); font-weight: 900; font-size: 28px; letter-spacing: .1em; }
+.reshead .when { font-size: 14px; color: var(--fg-2); }
+.reshead .when b { color: var(--fg); }
+.opts { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 18px; margin: 0 0 12px; font-size: 13.5px; color: var(--fg-2); }
+.check { display: inline-flex; gap: 7px; align-items: center; cursor: pointer; }
+.check input { width: 16px; height: 16px; accent-color: var(--malachite); margin: 0; }
+.opts .sp { margin-left: auto; display: flex; gap: 8px; flex-wrap: wrap; }
+#msg { font-size: 13.5px; color: var(--fg-3); margin: 0 0 10px; }
+#msg:empty { display: none; }
+.tw { overflow-x: auto; border: 1px solid var(--line-2); border-radius: 12px; background: var(--card); }
+table.kt { border-collapse: separate; border-spacing: 0; width: 100%; font-size: 13.5px; }
+.kt th, .kt td { padding: 8px 10px; text-align: right; border-bottom: 1px solid var(--line); white-space: nowrap; font-variant-numeric: tabular-nums; vertical-align: top; }
+.kt thead th { position: sticky; top: 0; background: var(--card); font-weight: 500; color: var(--fg-3); font-size: 12.5px; line-height: 1.45; vertical-align: bottom; z-index: 2; }
+.kt thead th button { border: 0; background: none; padding: 0; color: inherit; font: inherit; text-align: right; cursor: pointer; }
+.kt thead th button:hover { color: var(--fg); }
+.kt thead th .ar { display: inline-block; width: 1em; color: var(--gold); }
+.kt thead th .rv { display: block; color: var(--gold); font-size: 11px; }
+.kt thead tr.grp th { font-size: 11.5px; letter-spacing: .12em; color: var(--fg-3); padding-bottom: 0; border-bottom: 0; text-align: center; }
+.kt th:first-child, .kt td:first-child { position: sticky; left: 0; text-align: left; background: var(--card); z-index: 1; box-shadow: 1px 0 0 var(--line); }
+.kt thead th:first-child { z-index: 3; }
+.kt tbody tr:last-child td { border-bottom: 0; }
+.kt tbody tr:hover td { background: color-mix(in srgb, var(--hl) 55%, var(--card)); }
+.kt .stk { display: flex; flex-direction: column; min-width: 7.5em; }
+.kt .stk button { border: 0; background: none; padding: 0; text-align: left; font-family: var(--serif); font-weight: 900; font-size: 15.5px; color: var(--fg); letter-spacing: .03em; cursor: pointer; }
+.kt .stk button:hover { color: var(--malachite); }
+.kt .stk .cd { font-size: 12px; color: var(--fg-3); font-family: var(--sans); }
+.kt .v { font-size: 14px; color: var(--fg); }
+.kt .p { display: flex; align-items: center; justify-content: flex-end; gap: 6px; font-size: 12px; color: var(--fg-3); margin-top: 2px; }
+.bar { position: relative; display: inline-block; width: 44px; height: 4px; border-radius: 2px; background: var(--track); }
+.bar b { position: absolute; top: -3px; width: 3px; height: 10px; border-radius: 2px; background: var(--fg); transform: translateX(-1.5px); }
+.kt td.sc { background: color-mix(in srgb, var(--hl) 60%, var(--card)); }
+.kt tbody tr:hover td.sc { background: color-mix(in srgb, var(--hl) 100%, var(--card)); }
+.kt td.sc .v { font-size: 22px; font-weight: 700; line-height: 1.2; }
+.kt td.sc .p { justify-content: flex-end; }
+.kt td.na { color: var(--fg-3); text-align: left; white-space: normal; min-width: 18em; }
+.kt td .miss { color: var(--gold); }
+.act { display: inline-block; padding: 0 7px; border-radius: 5px; font-size: 12.5px; font-weight: 700; line-height: 1.7; }
+.act.buy { background: var(--up-bg); color: var(--up); }
+.act.sell { background: var(--down-bg); color: var(--down); }
+.act.hold { background: var(--panel-2); color: var(--fg-2); }
+.kt td.st b { font-size: 16px; }
+.kt tr.det td { background: var(--panel); white-space: normal; text-align: left; padding: 10px 14px 14px; }
+.kt tr.det:hover td { background: var(--panel); }
+.all { display: grid; grid-template-columns: repeat(auto-fill, minmax(270px, 1fr)); gap: 0 26px; }
+.all .it { display: flex; align-items: baseline; gap: 10px; padding: 5px 0; border-bottom: 1px solid var(--line); font-size: 13px; }
+.all .it .n { color: var(--fg-2); flex: 1; }
+.all .it .vv { color: var(--fg); font-variant-numeric: tabular-nums; }
+.all .it .pp { color: var(--fg-3); font-size: 12px; width: 5.2em; text-align: right; font-variant-numeric: tabular-nums; }
+.all .cath { grid-column: 1 / -1; font-size: 11.5px; letter-spacing: .12em; color: var(--fg-3); margin: 8px 0 0; }
+.notes { margin: 12px 0 0; padding: 0; list-style: none; font-size: 13px; color: var(--fg-2); }
+.notes li { padding: 4px 0; line-height: 1.7; }
+.notes b { color: var(--fg); }
+
+/* 走势 */
+.tctl { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; margin: 0 0 12px; font-size: 13.5px; color: var(--fg-2); }
+.tctl select { border: 1px solid var(--line-2); background: var(--card); border-radius: 8px; padding: 4px 8px; }
+.seastrip { margin: 0 0 6px; }
+.grid { display: grid; gap: 14px; }
+.pnl { background: var(--card); border: 1px solid var(--line-2); border-radius: 12px; padding: 10px 12px 6px; }
+.pnl .hd { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+.pnl .hd b { font-family: var(--serif); font-weight: 900; font-size: 15.5px; letter-spacing: .03em; }
+.pnl .hd .cd { font-size: 12px; color: var(--fg-3); }
+.pnl .hd .now { margin-left: auto; font-size: 13px; color: var(--fg-2); font-variant-numeric: tabular-nums; }
+.pnl .hd .now b { font-family: var(--sans); font-size: 17px; font-weight: 700; color: var(--fg); }
+svg.ch { display: block; width: 100%; overflow: visible; touch-action: pan-y; }
+svg.ch text { font-size: 10.5px; fill: var(--fg-3); font-family: var(--sans); }
+svg.ch .gl { stroke: var(--line); shape-rendering: crispEdges; }
+svg.ch .ax { stroke: var(--line-2); shape-rendering: crispEdges; }
+svg.ch .ln { fill: none; stroke: var(--fg); stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+svg.ch .th { stroke: var(--gold); stroke-dasharray: 4 3; stroke-width: 1; opacity: .8; }
+svg.ch .band { fill: var(--hl); opacity: .6; }
+svg.ch .cx { stroke: var(--gold); stroke-width: 1; }
+svg.ch .dot { fill: var(--fg); stroke: var(--card); stroke-width: 2; }
+svg.ch .lab { fill: var(--fg-2); font-size: 11px; }
+.thint { font-size: 12.5px; color: var(--fg-3); margin: 8px 0 0; }
+
+/* 找股 */
+.zctl { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; margin: 0 0 14px; font-size: 13.5px; color: var(--fg-2); }
+.zctl select { border: 1px solid var(--line-2); background: var(--card); border-radius: 8px; padding: 4px 8px; }
+.btn { display: inline-flex; align-items: center; gap: 8px; border: 0; border-radius: 999px; padding: 8px 20px; font-size: 14.5px; font-weight: 700; background: var(--fg); color: var(--panel); letter-spacing: .04em; }
+.btn:hover { opacity: .9; }
+.btn:disabled { opacity: .35; }
+.zcols { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 18px 30px; }
+.zcol h3 { margin: 0 0 6px; font-family: var(--serif); font-weight: 600; font-size: 17px; }
+.zcol h3 small { font-family: var(--sans); font-weight: 400; font-size: 12.5px; color: var(--fg-3); margin-left: 6px; }
+.zl { margin: 0; padding: 0; list-style: none; counter-reset: z; }
+.zl li { display: grid; grid-template-columns: 1.8em minmax(0, 1fr) auto auto; gap: 2px 10px; align-items: baseline; padding: 6px 0; border-bottom: 1px solid var(--line); font-size: 13.5px; }
+.zl li .rk { color: var(--fg-3); font-size: 12px; text-align: right; font-variant-numeric: tabular-nums; }
+.zl li .nm b { font-family: var(--serif); font-weight: 900; }
+.zl li .nm .cd { font-size: 12px; color: var(--fg-3); margin-left: 4px; }
+.zl li .nm .bd { display: block; font-size: 11.5px; color: var(--fg-3); line-height: 1.5; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.zl li .s { font-size: 17px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.zl li .add { border: 1px solid var(--line-2); background: var(--card); border-radius: 999px; padding: 1px 10px; font-size: 12.5px; color: var(--fg-2); }
+.zl li .add:hover:not(:disabled) { border-color: var(--malachite); color: var(--malachite); }
+.zl li .add:disabled { opacity: .45; }
+
+.glossary { columns: 2 340px; column-gap: 40px; margin: 0; padding: 0; list-style: none; }
+.glossary li { break-inside: avoid; padding: 8px 0; border-top: 1px solid var(--line); font-size: 13.5px; color: var(--fg-2); line-height: 1.7; }
+.glossary li b { color: var(--fg); display: block; font-size: 14px; }
+.glossary li .d { display: block; color: var(--fg-3); font-size: 12.5px; }
+
+.pager { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 12px; max-width: 1240px; margin: 0 auto; padding: 32px max(22px, env(safe-area-inset-right, 0px)) 0 max(22px, env(safe-area-inset-left, 0px)); }
+.pager a { display: block; border: 1px solid var(--line-2); border-radius: 12px; padding: 12px 16px; text-decoration: none; color: var(--fg); }
+.pager a:hover { border-color: var(--malachite); }
+.pager .k { font-size: 12px; color: var(--fg-3); }
+.pager b { font-family: var(--serif); font-size: 18px; font-weight: 900; letter-spacing: .08em; }
+.pager span { display: block; font-size: 12.5px; color: var(--fg-2); margin-top: 2px; }
+footer { max-width: 1240px; margin: 0 auto; padding: 40px max(22px, env(safe-area-inset-right, 0px)) 64px max(22px, env(safe-area-inset-left, 0px)); font-size: 13px; line-height: 1.8; color: var(--fg-3); }
+footer h2 { font-family: var(--serif); font-size: 17px; color: var(--fg); margin: 0 0 8px; }
+footer ul { margin: 0; padding-left: 1.2em; max-width: 66em; }
+footer li { margin: 2px 0; }
+footer p { margin: 14px 0 0; }
+#toast { position: fixed; left: 50%; bottom: 28px; transform: translateX(-50%); z-index: 60; background: var(--tip); color: var(--tip-fg); font-size: 13.5px; padding: 8px 16px; border-radius: 999px; pointer-events: none; opacity: 0; transition: opacity .2s; }
+#toast.on { opacity: 1; }
+
+@media (max-width: 960px) {
+  #hero .in, .ctl, .zcols { grid-template-columns: 1fr; }
+  #bar { gap: 8px; }
+  #bar .home span { display: none; }
+  #bar nav a { padding: 6px 7px; }
+}
+@media (max-width: 520px) {
+  body { font-size: 14.5px; }
+  #bar .go { display: none; }
+  .sec > h2, .reshead h2 { font-size: 24px; }
+  .kt th, .kt td { padding: 7px 8px; }
+  .kt .stk { min-width: 6em; }
+  .kt .stk button { font-size: 14.5px; }
+  .opts .sp { margin-left: 0; }
+  .seg button { padding: 7px 10px; }
+  .zl li .nm .bd { white-space: normal; }
+}
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } #toast { transition: none; } }
+</style>
+</head>
+<body>
+<header id="bar">
+  <a class="home" href="index.html"><span>A股疆域图</span><b>看数</b></a>
+  <nav aria-label="本页">
+    <a href="#xuan">选择</a><a href="#jieguo">结果</a><a href="#zhao">找股</a><a href="#zhibiao">指标</a><a href="#koujing">口径</a>
+  </nav>
+  <a class="go" href="index.html">打开地图</a>
+</header>
+
+<section id="hero">
+  <div class="in">
+    <div>
+      <p class="kick">二十八项指标 · 每个月末 · 全部A股</p>
+      <h1>看数</h1>
+      <p class="lede">任选几只股票、一个日期、几项指标，看它们在<b>当天全部A股</b>里排在什么位置，再把这些分位平均成一个<b>得分</b>。不选日期，就看得分怎么随时间起落。数据从2013年5月到2026年10月，每个月末一帧，和“持有一月 / 三月 / 一年”三个小游戏是同一套数字。</p>
+    </div>
+    <div class="howto">
+      <h2>得分怎么算</h2>
+      <ol>
+        <li>每项指标的<b>分位</b>：它高于当天多少比例的合格A股（0–100）。和游戏里“高于当天 X% 的公司”是同一个数。</li>
+        <li><b>平均得分</b>：所选指标分位的平均。点“反过来”的指标改用 100 − 分位；缺数据的按 50 计。</li>
+        <li>三套策略都是<b>分数越低越想买</b>：低分意味着换手少、市值小、波动小、近期跌得多或估值低。</li>
+      </ol>
+    </div>
+  </div>
+</section>
+
+<main>
+  <section class="sec" id="xuan">
+    <h2>选择</h2>
+    <p class="sub">选好以后，下面的结果会自动更新；地址栏会记住这一组选择，收藏或发给别人，打开就是同一张表。</p>
+    <div class="ctl">
+      <div>
+        <div class="blk">
+          <div class="k"><b>股票</b><span id="nsel">最多 10 只</span></div>
+          <div class="picker">
+            <input id="q" type="search" placeholder="代码、名称或拼音首字母：600519、茅台、gzmt、00939" autocomplete="off" spellcheck="false" aria-label="搜索股票" aria-controls="sug" aria-autocomplete="list">
+            <ul id="sug" role="listbox" hidden></ul>
+          </div>
+          <div class="picked" id="picked"></div>
+          <div class="rowb">
+            <button class="mini" id="rand" type="button">随机 10 只</button>
+            <button class="mini" id="demo" type="button">示例</button>
+            <button class="mini" id="clr" type="button">清空</button>
+          </div>
+          <p class="small" style="margin:8px 0 0">含已退市的公司。A+H 两地上市的公司可以用 H 股代码或名称找到，指标来自它的A股；只在港股上市的公司只有2026年11月13日的一份快照。</p>
+        </div>
+        <div class="blk">
+          <div class="k"><b>日期</b></div>
+          <div class="seg" id="mode" role="group" aria-label="看一天还是看走势">
+            <button type="button" data-v="date">选一个日期</button><button type="button" data-v="trend">不选日期，看走势</button>
+          </div>
+          <div class="daterow" id="daterow">
+            <button class="step" id="prev" type="button" aria-label="上一个月">◀</button>
+            <select id="month" aria-label="月份"></select>
+            <button class="step" id="next" type="button" aria-label="下一个月">▶</button>
+            <input type="range" id="slider" aria-label="拖动选择月份">
+          </div>
+          <p class="dinfo" id="dinfo"></p>
+        </div>
+      </div>
+      <div class="blk">
+        <div class="k"><b>指标</b><span>勾选的指标都会列出数值和分位；有分位的才计入得分</span></div>
+        <div class="presets" id="presets">
+          <button type="button" data-p="A1" title="换手率、总市值、波动率、近3个月涨跌（再看海平面）">一月策略 A1</button>
+          <button type="button" data-p="A3" title="换手率、总市值、波动率、近1个月涨跌">三月策略 A3</button>
+          <button type="button" data-p="A12" title="换手率、总市值、波动率、市净率">一年策略 A12</button>
+          <button type="button" data-p="six" title="三套策略用到的六项">六项都看</button>
+          <button type="button" class="plain" data-p="none">清空</button>
+        </div>
+        <div class="cats" id="cats"></div>
+        <div class="chosen" id="chosen"></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="sec" id="jieguo">
+    <div class="reshead"><h2 id="rtitle">结果</h2><span class="when" id="rwhen"></span></div>
+    <div id="rdate">
+      <div class="opts">
+        <label class="check"><input type="checkbox" id="oStrat" checked>三套策略的打分和建议</label>
+        <label class="check"><input type="checkbox" id="oLater">后来怎样（此后 1个月 / 3个月 / 1年）</label>
+        <span class="sp"><button class="mini" id="copy" type="button">复制表格</button><button class="mini" id="csv" type="button">下载 CSV</button></span>
+      </div>
+      <p id="msg"></p>
+      <div class="tw"><table class="kt" id="tbl"></table></div>
+      <ul class="notes" id="notes"></ul>
+    </div>
+    <div id="rtrend" hidden>
+      <div class="tctl">
+        <label>看什么 <select id="tview"></select></label>
+        <span class="small" id="thover">把鼠标移到图上看某个月；点一下，就切到那一天的表格</span>
+      </div>
+      <div class="seastrip" id="seastrip"></div>
+      <div class="grid" id="tgrid"></div>
+      <p class="thint" id="tnote"></p>
+    </div>
+  </section>
+
+  <section class="sec" id="zhao">
+    <h2>在全部A股里找</h2>
+    <p class="sub">用上面勾选的指标和方向，给这一天图上的每一家公司打分，列出分数最低和最高的各 20 家；点“加入”放进上面的对照表。</p>
+    <div class="zctl">
+      <button class="btn" id="zrun" type="button">找</button>
+      <label>范围 <select id="zpool"><option value="ref">合格公司（上市满一年、当天有交易）</option><option value="all">图上全部公司</option><option value="big">只看市值前 300 名</option></select></label>
+      <label>行业 <select id="zsec"><option value="-1">全部 30 国</option></select></label>
+      <span class="small" id="zinfo"></span>
+    </div>
+    <div id="zres"></div>
+  </section>
+
+  <section class="sec" id="zhibiao">
+    <h2>二十八项指标</h2>
+    <p class="sub">名称、口径和每个数字可能怎样骗人，和小游戏里翻牌时的说明相同。</p>
+    <ul class="glossary" id="glossary"></ul>
+  </section>
+</main>
+
+<nav class="pager" aria-label="其他页面">
+  <a href="index.html"><div class="k">地图</div><b>A股疆域图</b><span>二十六年的行业版图</span></a>
+  <a href="faxian.html"><div class="k">把注意力放在哪里</div><b>发现好公司</b><span>学科、产业、公司、价格筛四遍</span></a>
+  <a href="zhencha.html"><div class="k">先排除谁</div><b>财报侦探</b><span>财务指标与财报里的线索</span></a>
+  <a href="ganggu.html"><div class="k">对岸</div><b>港股通</b><span>从港股通里挑公司</span></a>
+  <a href="chiyou.html"><div class="k">练眼力</div><b>持有一月</b><span>一个月后揭晓</span></a>
+  <a href="sanyue.html"><div class="k">练眼力</div><b>持有三月</b><span>三个月后揭晓</span></a>
+  <a href="yinian.html"><div class="k">练眼力</div><b>持有一年</b><span>一年后揭晓</span></a>
+</nav>
+
+<footer id="koujing">
+  <h2>口径与边界</h2>
+  <ul>
+    <li>日期是每个月最后一个交易日，2013年5月到2026年10月，共 162 个月。数值、分位的算法和“持有一月 / 三月 / 一年”完全一样，游戏题库里的 7,225 道题逐项核对过。</li>
+    <li>分位：在当天“上市满一年、当天有交易”的全部A股里，它高于多少比例的公司（相同的值取中间）。上市不满一年或当天停牌的公司不在参照里，但也给出它在参照公司里的位置。上市时间、财报疑点、行业近12个月、近十年利润（按最近一年利润）四项的分位是本页新加的，游戏里没有。</li>
+    <li>财务指标用当时已经披露的最近一期年报：1–4 月用前年年报，5–12 月用上一年年报。市盈率、市净率、市销率是静态的，不是行情软件常用的滚动市盈率。</li>
+    <li>平均得分：只算有分位的指标（行业、板块没有分位）；“反过来”的用 100 − 分位；缺数据的按 50 计，和策略回测的做法一致。海平面对当天每只股票都一样，它的分位是和 2000 年以来每个月比。</li>
+    <li>三套策略：一月策略 A1 看换手率、总市值、波动率、近3个月涨跌四项的平均分位，再看海平面（水位低于 70%：分数 ≤65 买入；70%–80%：>65 卖出、≤45 买入；80% 以上：>45 卖出、不买）；三月策略 A3 看换手率、总市值、波动率、近1个月涨跌（≤70 买入，>70 卖出）；一年策略 A12 看换手率、总市值、波动率、市净率（≤65 买入，>70 卖出）。它们来自 2013–2026 年游戏题库的回测，只是历史统计。</li>
+    <li>后来怎样：含分红的复权涨跌；之后退市的按最后一个交易日的价格计；“大盘”是当天图上全部公司按市值加权、买入后不再调整，和游戏的口径相同。2026年10月之后的还没有答案。</li>
+    <li>港股：这里没有港股的逐月历史行情。A+H 公司的指标都来自它的A股（同一家公司、同一份年报），另附 2026年11月13日的 H 股股价和 A/H 价差；只在港股上市的公司只有那一天的股价、市值、市盈率和股息率，不能打分，也没有走势。</li>
+  </ul>
+  <p>本页不构成投资建议。 <a href="index.html">回到地图</a> · <a href="ganggu.html">港股通</a> · <a href="chiyou.html">持有一月</a> · <a href="https://github.com/wanglu2016/agu-jiangyu" target="_blank" rel="noopener">源代码、数据来源与离线版</a></p>
+</footer>
+<div id="toast" role="status" aria-live="polite"></div>
+
+<script src="assets/ks/index.js"></script>
+<script src="assets/kanshu.js"></script>
+</body>
+</html>
