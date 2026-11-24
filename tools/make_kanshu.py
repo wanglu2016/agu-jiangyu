@@ -8,6 +8,7 @@
   index.js        window.AGU_KS_IDX：月份、海平面、同期大盘、30 国、全部公司的代码/名称/拼音首字母/曾用名、A+H 对照和港股快照
   s/<代码>.js      AGU_KS.s('<代码>', '<base64>')：一只股票逐月的数值（Int16）与分位（Uint8），zlib 压缩；格式见 pack_stock()
   m/<年-月>.js     AGU_KS.m('<年-月>', '<base64>')：这个月图上全部公司的分位（供“在全部A股里找”），zlib 压缩；格式见 pack_month()
+最后调用 make_kanshu_ext.py，在这三类文件后面补上异常换手和同行业分位（格式见那个脚本开头的说明）。
 """
 import os, json, base64, zlib, time
 import numpy as np, pandas as pd
@@ -283,7 +284,7 @@ def pack_month(wi):
     再按公司依次排列每家 len(PF) 个分位"""
     js = [j for j in jlist if ONMAP[j, wi]]
     ii = np.array([pos[j] for j in js], '<u2')
-    ref = REF[js, wi].astype(np.uint8); sec = np.array([max(int(SEC[j, W[wi]]), 0) for j in js], np.uint8)
+    ref = REF[js, wi].astype(np.uint8); sec = np.array([int(SEC[j, W[wi]]) if SEC[j, W[wi]] >= 0 else 255 for j in js], np.uint8)   # 行业未知记 255
     P = np.stack([PCT[k][js, wi] for k in PF], 1).astype(np.uint8)
     return b64z(planes(ii.astype('<i2')) + ref.tobytes() + sec.tobytes() + P.tobytes()), len(js)
 mt = 0
@@ -298,3 +299,8 @@ idx = dict(v=1, months=MON['months'], days=MON['days'], sea=MON['sea'], seaP=MON
 s = '/* 看数页的索引：由 tools/make_kanshu.py 生成，勿手改 */\nwindow.AGU_KS_IDX=' + json.dumps(idx, ensure_ascii=False, separators=(',', ':')) + ';\n'
 open(os.path.join(OUT, 'index.js'), 'w', encoding='utf-8').write(s)
 print('index.js', len(s.encode()) // 1024, 'KB；公司', len(idx_co), '；A+H', sum(1 for x in idx_co if x[8]), f'；用时 {time.time() - T_START:.0f}s')
+
+# ---------------------------------------------------------------- 补上异常换手、同行业分位（只读写 ../assets/ks/）
+import importlib.util
+_spec = importlib.util.spec_from_file_location('make_kanshu_ext', os.path.join(H, 'make_kanshu_ext.py'))
+_ext = importlib.util.module_from_spec(_spec); _spec.loader.exec_module(_ext); _ext.main()

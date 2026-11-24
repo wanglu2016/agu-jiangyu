@@ -4,8 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>看数 · A股疆域图</title>
-<meta name="description" content="任选A股（A+H公司也可以用H股代码找）、一个日期和若干项指标，列出每只股票在当天全部A股里的数值和分位，再把分位平均成一个得分；不选日期，就看得分怎么随时间变化。2013年5月到2026年10月每个月末，和“持有一月/三月/一年”小游戏同一口径，并给出三套策略的建议。">
-<meta property="og:title" content="看数 · 每只股票的28项指标与分位">
+<meta name="description" content="任选A股（A+H公司也可以用H股代码找）、一个日期和若干项指标，列出每只股票在当天全部A股（也可以只和同行业比）里的数值和分位，再把分位平均成一个得分；不选日期，就看得分怎么随时间变化。2013年5月到2026年10月每个月末，和“持有一月/三月/一年”小游戏同一口径，并给出三套策略的建议。">
+<meta property="og:title" content="看数 · 每只股票的29项指标与分位">
 <meta property="og:description" content="选股票、选日期、勾指标：数值、分位、平均得分和走势，一张表看清。">
 <meta property="og:image" content="assets/preview-kanshu.jpg">
 <meta name="theme-color" content="#e8e1d1">
@@ -116,6 +116,10 @@ main { max-width: 1240px; margin: 0 auto; padding: 0 max(22px, env(safe-area-ins
 .dinfo { margin: 8px 0 0; font-size: 13px; color: var(--fg-3); line-height: 1.7; }
 .dinfo b { color: var(--fg); font-weight: 600; }
 .presets { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 12px; }
+.basis { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; margin: 0 0 12px; }
+.basis .bk { font-size: 13px; color: var(--fg-3); }
+.basis .seg button { padding: 5px 12px; font-size: 13.5px; }
+.basis .bn { font-size: 12.5px; color: var(--fg-3); flex: 1 1 18em; }
 .presets button { border: 1px solid var(--gold); background: transparent; color: var(--gold); border-radius: 999px; padding: 3px 12px; font-size: 13.5px; }
 .presets button:hover, .presets button[aria-pressed="true"] { background: var(--gold); color: var(--panel); }
 .presets button.plain { border-color: var(--line-2); color: var(--fg-2); }
@@ -288,14 +292,14 @@ footer p { margin: 14px 0 0; }
 <section id="hero">
   <div class="in">
     <div>
-      <p class="kick">二十八项指标 · 每个月末 · 全部A股</p>
+      <p class="kick">二十九项指标 · 每个月末 · 全部A股</p>
       <h1>看数</h1>
-      <p class="lede">任选几只股票、一个日期、几项指标，看它们在<b>当天全部A股</b>里排在什么位置，再把这些分位平均成一个<b>得分</b>。不选日期，就看得分怎么随时间起落。数据从2013年5月到2026年10月，每个月末一帧，和“持有一月 / 三月 / 一年”三个小游戏是同一套数字。</p>
+      <p class="lede">任选几只股票、一个日期、几项指标，看它们在<b>当天全部A股</b>里排在什么位置（也可以只和<b>同一个行业</b>的公司比），再把这些分位平均成一个<b>得分</b>。不选日期，就看得分怎么随时间起落。数据从2013年5月到2026年10月，每个月末一帧，和“持有一月 / 三月 / 一年”三个小游戏是同一套数字。</p>
     </div>
     <div class="howto">
       <h2>得分怎么算</h2>
       <ol>
-        <li>每项指标的<b>分位</b>：它高于当天多少比例的合格A股（0–100）。和游戏里“高于当天 X% 的公司”是同一个数。</li>
+        <li>每项指标的<b>分位</b>：它高于当天多少比例的合格A股（0–100）。和游戏里“高于当天 X% 的公司”是同一个数。在“指标”里点“同一个行业”，就改成只和同一个国（30 个行业之一）的公司比。</li>
         <li><b>平均得分</b>：所选指标分位的平均。点“反过来”的指标改用 100 − 分位；缺数据的按 50 计。</li>
         <li>三套策略都是<b>分数越低越想买</b>：低分意味着换手少、市值小、波动小、近期跌得多或估值低。</li>
       </ol>
@@ -346,6 +350,7 @@ footer p { margin: 14px 0 0; }
           <button type="button" data-p="six" title="三套策略用到的六项">六项都看</button>
           <button type="button" class="plain" data-p="none">清空</button>
         </div>
+        <div class="basis" id="basisrow" hidden><span class="bk">分位和谁比</span><div class="seg" id="basis" role="group" aria-label="分位和谁比"><button type="button" data-b="all">当天全部A股</button><button type="button" data-b="ind">同一个行业</button></div><span class="bn" id="bnote"></span></div>
         <div class="cats" id="cats"></div>
         <div class="chosen" id="chosen"></div>
       </div>
@@ -388,8 +393,8 @@ footer p { margin: 14px 0 0; }
   </section>
 
   <section class="sec" id="zhibiao">
-    <h2>二十八项指标</h2>
-    <p class="sub">名称、口径和每个数字可能怎样骗人，和小游戏里翻牌时的说明相同。</p>
+    <h2>二十九项指标</h2>
+    <p class="sub">名称、口径和每个数字可能怎样骗人。“异常换手”是本页新加的，其余 28 项和小游戏里翻牌时的说明相同。</p>
     <ul class="glossary" id="glossary"></ul>
   </section>
 </main>
@@ -409,6 +414,8 @@ footer p { margin: 14px 0 0; }
   <ul>
     <li>日期是每个月最后一个交易日，2013年5月到2026年10月，共 162 个月。数值、分位的算法和“持有一月 / 三月 / 一年”完全一样，游戏题库里的 7,225 道题逐项核对过。</li>
     <li>分位：在当天“上市满一年、当天有交易”的全部A股里，它高于多少比例的公司（相同的值取中间）。上市不满一年或当天停牌的公司不在参照里，但也给出它在参照公司里的位置。上市时间、财报疑点、行业近12个月、近十年利润（按最近一年利润）四项的分位是本页新加的，游戏里没有。</li>
+    <li>异常换手：月末“近 20 个交易日日均成交额 ÷ 总市值”，除以最近 12 个月末（含本月）同一个数的平均，至少要有 9 个月有数，所以 2014年1月起才有。学术上常用“近 20 日 ÷ 近 250 日”，12 个月末的 20 日均值大约覆盖 240 个交易日。分子分母是同一家公司、几乎同样的股本，用总股本、流通股还是自由流通股算，结果几乎一样；换手率本身则不然，A+H 公司的 H 股、次新股的限售股都会让它显得偏冷。本页新加，游戏里没有。</li>
+    <li>同行业分位：用指标的数值，在同一个国（地图上的 30 国）当天的合格公司里排，算法同上；同行有数的合格公司不足 5 家（比如有些月份的保险）就不算，按 50 计入得分。海平面、行业近12个月、市盈率在自己五年里的位置不分行业。三套策略的打分和建议一律按全部A股的分位，因为它们的门槛是按那个口径定的；点策略按钮时，分位会切回“当天全部A股”。</li>
     <li>财务指标用当时已经披露的最近一期年报：1–4 月用前年年报，5–12 月用上一年年报。市盈率、市净率、市销率是静态的，不是行情软件常用的滚动市盈率。</li>
     <li>平均得分：只算有分位的指标（行业、板块没有分位）；“反过来”的用 100 − 分位；缺数据的按 50 计，和策略回测的做法一致。海平面对当天每只股票都一样，它的分位是和 2000 年以来每个月比。</li>
     <li>三套策略：一月策略 A1 看换手率、总市值、波动率、近3个月涨跌四项的平均分位，再看海平面（水位低于 70%：分数 ≤65 买入；70%–80%：>65 卖出、≤45 买入；80% 以上：>45 卖出、不买）；三月策略 A3 看换手率、总市值、波动率、近1个月涨跌（≤70 买入，>70 卖出）；一年策略 A12 看换手率、总市值、波动率、市净率（≤65 买入，>70 卖出）。它们来自 2013–2026 年游戏题库的回测，只是历史统计。</li>

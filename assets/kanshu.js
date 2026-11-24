@@ -5,7 +5,10 @@ const X = window.AGU_KS_IDX;
 const $ = (s, el = document) => el.querySelector(s);
 const isF = Number.isFinite;
 const NW = X.months.length, LASTT = NW - 1, MAXS = 10;
-const VFD = Object.fromEntries(X.vf.map(f => [f[0], f]));
+// make_kanshu_ext.py 补的部分：异常换手（数值和全市场分位）、同行业分位（ipf 里的字段）
+const EXT = X.ext || { vf: [], pf: [], ipf: [], imin: 5, nsec: [] };
+const VFD = Object.fromEntries(X.vf.concat(EXT.vf).map(f => [f[0], f]));
+const IPS = new Set(EXT.ipf), IPI = Object.fromEntries(EXT.ipf.map((k, i) => [k, i]));
 const CO = X.co, BY = new Map(CO.map((c, i) => [c[0], i]));
 const SECN = X.sec.map(s => s[1]), SECK = X.sec.map(s => s[0]);
 const AH = new Map(X.hk.ah.map(r => [r[0], r]));          // A股代码 → [A股代码, H股代码, H股价(港元), A股价(元)]（和 hk.js 同序）
@@ -58,15 +61,22 @@ function getStock(code) {
     for (const f of X.vf) { v[f[0]] = i16(u, off, n); off += 2 * n; }
     for (const k of X.pf) { p[k] = u.subarray(off, off + n); off += n; }
     const ni = i16(u, off, X.ny); off += 2 * X.ny;
-    return { ci, code, a, b, n, v, p, ni, adj: new Float32Array(u.slice(off, off + 4 * n).buffer) };
+    const adj = new Float32Array(u.slice(off, off + 4 * n).buffer); off += 4 * n;
+    for (const f of EXT.vf) { v[f[0]] = i16(u, off, n); off += 2 * n; }
+    for (const k of EXT.pf) { p[k] = u.subarray(off, off + n); off += n; }
+    const ip = {}; for (const k of EXT.ipf) { ip[k] = u.subarray(off, off + n); off += n; }
+    return { ci, code, a, b, n, v, p, ip, ni, adj };
   });
   pr.catch(() => SC.delete(code)); SC.set(code, pr); return pr;
 }
 function getMonth(t) {
   if (MC.has(t)) return MC.get(t);
   const pr = loadJS(`assets/ks/m/${X.months[t]}.js`, 'm' + X.months[t]).then(unz).then(u => {
-    const K = X.pf.length, n = u.length / (4 + K), ids = i16(u, 0, n);
-    return { n, ids, ref: u.subarray(2 * n, 3 * n), sec: u.subarray(3 * n, 4 * n), P: u.subarray(4 * n), K };
+    const K = X.pf.length, KI = EXT.ipf.length, n = u.length / (4 + K + EXT.pf.length + KI), ids = i16(u, 0, n);
+    let off = 4 * n + n * K; const E = {};
+    for (const k of EXT.pf) { E[k] = u.subarray(off, off + n); off += n; }
+    // sec 为 255 表示行业未知；IP 是同行业分位，按公司依次排列每家 KI 个
+    return { n, ids, ref: u.subarray(2 * n, 3 * n), sec: u.subarray(3 * n, 4 * n), P: u.subarray(4 * n, 4 * n + n * K), K, E, IP: u.subarray(off, off + n * KI), KI };
   });
   pr.catch(() => MC.delete(t)); MC.set(t, pr); return pr;
 }
@@ -77,7 +87,10 @@ function V(S, k, t) {
   const f = VFD[k]; return f[1] === 'g' ? 10 ** (q / 2000) : f[1] === 'l' ? q / (f[2] || 1) : dq(q);
 }
 const ADJ = (S, t) => { const i = t - S.a; return i < 0 || i >= S.n ? NaN : S.adj[i]; };
-function P(S, k, t) { const i = t - S.a; if (i < 0 || i >= S.n) return NaN; const p = S.p[k][i]; return p === 255 ? NaN : p; }
+function P(S, k, t) { const i = t - S.a; if (i < 0 || i >= S.n || !S.p[k]) return NaN; const p = S.p[k][i]; return p === 255 || p === undefined ? NaN : p; }
+function IPof(S, k, t) { const i = t - S.a; if (i < 0 || i >= S.n || !S.ip[k]) return NaN; const p = S.ip[k][i]; return p === 255 || p === undefined ? NaN : p; }
+const peersOf = (sec, t) => sec >= 0 && EXT.nsec[t] ? EXT.nsec[t][sec] : NaN;
+const secTag = (S, t) => { const s = secOf(S, t); return s < 0 ? '<span class="cd">行业未知</span>' : `<span class="cd">${esc(SECN[s])} · 同行 ${peersOf(s, t)} 家</span>`; };
 const fyk = t => { const y = +X.months[t].slice(0, 4), m = +X.months[t].slice(5, 7); return (m >= 5 ? y - 1 : y - 2) - X.fy0; };
 const niFY = (S, k) => k >= 0 && k < X.ny ? dq(S.ni[k]) : NaN;
 const niHist = (S, t) => { const k = fyk(t); return Array.from({ length: 10 }, (_, i) => niFY(S, k - 9 + i)); };
@@ -114,8 +127,11 @@ const IND = [
     hint: '波动率说的是坐车有多颠，不是目的地在哪里。颠得越厉害，越容易在低点被吓下车。' },
   { k: 'amt', cat: '成交', nm: '日均成交额', sh: '成交额', pk: 'amt', cell: (S, t) => ({ v: yi(V(S, 'amt', t)) + (isF(V(S, 'amt', t)) ? '元' : '') }), d: '近 20 个交易日平均',
     hint: '成交太少的股票，进得去、出不来；你自己的买卖就可能推动价格。' },
-  { k: 'turn', cat: '成交', nm: '成交额占总市值（换手率）', sh: '换手率', pk: 'turn', cell: (S, t) => ({ v: pct(V(S, 'turn', t), '%', 2) }), d: '每天，近 20 个交易日平均；行情软件的换手率按流通股算，会比这里高',
-    hint: '这个比例很高，说明它正被热炒，价格更多由情绪决定。' },
+  { k: 'turn', cat: '成交', nm: '成交额占总市值（换手率）', sh: '换手率', pk: 'turn', cell: (S, t) => ({ v: pct(V(S, 'turn', t), '%', 2) }), d: '每天，近 20 个交易日平均，分母是总市值；行情软件的换手率按流通股算，会比这里高。A+H 公司的 H 股也算在总市值里，所以显得偏冷',
+    hint: '这个比例很高，说明它正被热炒，价格更多由情绪决定。和别的公司比时留意分母：H 股、大股东长期不卖的股份，都会让它显得冷。' },
+  { k: 'abn', cat: '成交', nm: '异常换手（和自己过去一年比）', sh: '异常换手', pk: 'abn', cell: (S, t) => { const v = V(S, 'abn', t); return { v: isF(v) ? `${v.toFixed(2)}倍` : '—' }; },
+    d: '近 20 个交易日的日均换手 ÷ 最近 12 个月末同一数字的平均（含本月），1 倍就是和平时一样；分子分母是同一家公司的股本，用哪种股本算都一样。2014年1月起才有',
+    hint: '比自己平时热出好几倍，常常是消息或题材带起来的，历史上此后跑输的偏多。它不受股本口径影响，A+H 公司、次新股也能公平地比。' },
   { k: 'pe', cat: '估值', nm: '市盈率（静态）', sh: '市盈率', pk: 'pe', cell: (S, t) => { const v = V(S, 'pe', t); if (!isF(v)) return { v: niHist(S, t)[9] < 0 ? '亏损' : '—' }; return { v: v >= 3270 ? '>3000倍' : `${v.toFixed(1)}倍` }; },
     d: '总市值 ÷ 最近一期年报的归母净利润', hint: '低市盈率可能是便宜，也可能是利润正处在周期高点、明年就要下滑。下结论之前，先看十年利润。' },
   { k: 'peself', cat: '估值', nm: '市盈率在自己五年里的位置', sh: '自身PE位置', pk: 'peself', cell: (S, t) => { const v = V(S, 'peself', t); return { v: isF(v) ? `第${v}位` : '—' }; },
@@ -158,16 +174,18 @@ const IND = [
 const IK = Object.fromEntries(IND.map(d => [d.k, d]));
 const CATS = ['公司', '价格', '成交', '估值', '财务', '大环境'];
 const shName = d => d.sh || d.nm;
-function pOf(S, d, t) {
+// 分位和谁比：'all' 当天全部合格A股，'ind' 同一个国（30 个行业之一）的合格公司。海平面、行业近12个月、自身PE位置不分
+const byInd = (d, basis) => basis === 'ind' && IPS.has(d.pk);
+function pOf(S, d, t, basis = ST.basis) {
   if (!d.pk) return NaN;
   if (d.pk === 'sea') return X.seaP[t];
-  return P(S, d.pk, t);
+  return byInd(d, basis) ? IPof(S, d.pk, t) : P(S, d.pk, t);
 }
-function scoreOf(S, t, inds, flip) {
+function scoreOf(S, t, inds, flip, basis = ST.basis) {
   let s = 0, n = 0, miss = 0;
   for (const k of inds) {
     const d = IK[k]; if (!d.pk) continue;
-    let p = pOf(S, d, t); if (!isF(p)) { p = 50; miss++; }
+    let p = pOf(S, d, t, basis); if (!isF(p)) { p = 50; miss++; }
     if (flip && flip.has(k)) p = 100 - p;
     s += p; n++;
   }
@@ -182,7 +200,9 @@ const STRAT = [
 const ACTN = { buy: '买入', sell: '卖出', hold: '不动' };
 const PRESET = { A1: STRAT[0].inds, A3: STRAT[1].inds, A12: STRAT[2].inds, six: ['turn', 'cap', 'vol', 'pb', 'm3', 'm1'], none: [] };
 const sameSet = (a, b) => a.length === b.length && a.every(x => b.includes(x));
-const stratMatch = () => ST.flip.size ? null : STRAT.find(s => sameSet(s.inds, ST.inds)) || null;
+const stratMatch = () => ST.flip.size || ST.basis === 'ind' ? null : STRAT.find(s => sameSet(s.inds, ST.inds)) || null;
+const indMode = () => ST.basis === 'ind';
+const pName = d => byInd(d, ST.basis) ? '同行业分位' : '分位';
 function later(S, t, h) {
   const a0 = ADJ(S, t), t2 = t + h, m = X.mkt[t] ? X.mkt[t][h === 1 ? 0 : h === 3 ? 1 : 2] : null;
   if (!isF(a0)) return { r: NaN, m };
@@ -194,7 +214,7 @@ function later(S, t, h) {
 
 // ------------------------------------------------------------------ 状态与地址栏
 const DEMO = ['600519', '300750', '600036', '601318', '600900', '002594', '688981', '000333', '601899', '000002'];
-const ST = { codes: [], mode: 'date', t: LASTT, inds: PRESET.six.slice(), flip: new Set(), strat: true, later: false, sort: null, open: new Set(), tview: 'score' };
+const ST = { codes: [], mode: 'date', t: LASTT, inds: PRESET.six.slice(), flip: new Set(), basis: 'all', strat: true, later: false, sort: null, open: new Set(), tview: 'score' };
 const SAVE = 'agu-kanshu-v1';
 const okCode = c => BY.has(c) || (c.startsWith('HK') && HO.has(c.slice(2)));
 function readHash(h) {
@@ -204,11 +224,12 @@ function readHash(h) {
   ST.inds = (q.k || '').split(',').filter(k => IK[k]).filter((c, i, a) => a.indexOf(c) === i);
   ST.flip = new Set((q.f || '').split(',').filter(k => ST.inds.includes(k) && IK[k].pk));
   if (q.v === 't') ST.mode = 'trend';
+  ST.basis = q.b === 'i' && EXT.ipf.length ? 'ind' : 'all';
   const t = X.months.indexOf(q.d || ''); if (t >= 0) ST.t = t;
   return true;
 }
 function writeHash() {
-  const h = `#s=${ST.codes.join(',')}&${ST.mode === 'trend' ? 'v=t&d=' + X.months[ST.t] : 'd=' + X.months[ST.t]}&k=${ST.inds.join(',')}${ST.flip.size ? '&f=' + [...ST.flip].join(',') : ''}`;
+  const h = `#s=${ST.codes.join(',')}&${ST.mode === 'trend' ? 'v=t&d=' + X.months[ST.t] : 'd=' + X.months[ST.t]}&k=${ST.inds.join(',')}${ST.flip.size ? '&f=' + [...ST.flip].join(',') : ''}${indMode() ? '&b=i' : ''}`;
   try { history.replaceState(null, '', h); } catch (e) { /* file:// 下有的浏览器不让改 */ }
   try { localStorage.setItem(SAVE, h); } catch (e) { /* 存不下也没关系 */ }
 }
@@ -275,11 +296,14 @@ function renderDate() {
     : `<b>${dCN(ST.t)}</b>（月末最后一个交易日）· 做分位参照的合格公司 <b>${X.ne[ST.t].toLocaleString('zh-CN')}</b> 家 · 海平面 <b>${X.sea[ST.t].toFixed(0)}%</b>，高于 2000 年以来 ${X.seaP[ST.t]}% 的月份`;
 }
 function renderInds() {
-  $('#cats').innerHTML = CATS.map(cat => `<div class="cat"><div class="ck">${cat}</div><div class="chips">${IND.filter(d => d.cat === cat).map(d => `<button type="button" class="chip" data-k="${d.k}" aria-pressed="${ST.inds.includes(d.k)}" title="${esc(d.nm + '：' + d.d)}">${esc(d.k === 'turn' ? '换手率' : d.nm)}${d.pk ? '' : '<span class="nop">不计分</span>'}</button>`).join('')}</div></div>`).join('');
+  $('#cats').innerHTML = CATS.map(cat => `<div class="cat"><div class="ck">${cat}</div><div class="chips">${IND.filter(d => d.cat === cat).map(d => `<button type="button" class="chip" data-k="${d.k}" aria-pressed="${ST.inds.includes(d.k)}" title="${esc(d.nm + '：' + d.d)}">${esc(d.k === 'turn' ? '换手率' : d.k === 'abn' ? d.sh : d.nm)}${d.pk ? '' : '<span class="nop">不计分</span>'}</button>`).join('')}</div></div>`).join('');
   const m = stratMatch();
   $('#presets').querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', b.dataset.p !== 'none' && !ST.flip.size && sameSet(PRESET[b.dataset.p], ST.inds) && ST.inds.length > 0));
+  $('#basisrow').hidden = !EXT.ipf.length;
+  $('#basis').querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', b.dataset.b === ST.basis));
+  $('#bnote').textContent = indMode() ? `在同一个国（30 个行业之一）当天的合格公司里排，同行不足 ${EXT.imin} 家的不算；海平面、行业近12个月、市盈率在自己五年里的位置不变` : '在当天全部合格A股里排';
   const scored = ST.inds.filter(k => IK[k].pk).length;
-  $('#chosen').innerHTML = `<div class="hd"><span>已选 <b>${ST.inds.length}</b> 项，其中 <b>${scored}</b> 项计入得分${m ? `，正好是<b>${m.nm.replace(' ', '策略 ')}</b>` : ''}</span><span>“反过来”＝用 100 − 分位：想让“越大越好”的指标（如回报率）也是越大分越低时用</span></div>` +
+  $('#chosen').innerHTML = `<div class="hd"><span>已选 <b>${ST.inds.length}</b> 项，其中 <b>${scored}</b> 项计入得分${indMode() ? '，分位按同行业' : ''}${m ? `，正好是<b>${m.nm.replace(' ', '策略 ')}</b>` : ''}</span><span>“反过来”＝用 100 − 分位：想让“越大越好”的指标（如回报率）也是越大分越低时用</span></div>` +
     (ST.inds.length ? `<ul>${ST.inds.map(k => { const d = IK[k]; return `<li><span class="nm">${esc(d.nm)}</span>${d.pk ? `<button type="button" class="dir" data-flip="${k}" aria-pressed="${ST.flip.has(k)}">${ST.flip.has(k) ? '已反过来' : '反过来'}</button>` : '<span class="tag x">不计分</span>'}<button type="button" class="x" data-rmk="${k}" aria-label="去掉 ${esc(d.nm)}">×</button></li>`; }).join('')}</ul>` : '<p class="empty">还没有勾选指标。点上面的策略按钮，或从分组里勾选。</p>');
 }
 
@@ -300,7 +324,8 @@ function renderTable() {
     const S = SC.get(code + ':v'); if (!S) continue;
     if (t < S.a || t > S.b) { rows.push({ code, S, off: t < S.a ? 'before' : 'after' }); continue; }
     const sc = scoreOf(S, t, ST.inds, ST.flip);
-    const st = STRAT.map(s => { const v = scoreOf(S, t, s.inds).v; return { v, a: s.act(v, X.sea[t]) }; });
+    // 三套策略的门槛是按全市场分位定的，打分一律按全市场分位算，不随“分位和谁比”变
+    const st = STRAT.map(s => { const v = scoreOf(S, t, s.inds, null, 'all').v; return { v, a: s.act(v, X.sea[t]) }; });
     const lt = [1, 3, 12].map(h => later(S, t, h));
     rows.push({ code, S, sc, st, lt });
   }
@@ -318,7 +343,7 @@ function renderTable() {
   const hasScore = ST.inds.some(k => IK[k].pk), showStrat = ST.strat, showLater = ST.later;
   const nAll = 1 + cols.length + (hasScore ? 1 : 0) + (showStrat ? 3 : 0) + (showLater ? 3 : 0);
   let h = '<thead>';
-  if (showStrat || showLater) h += `<tr class="grp"><th></th><th colspan="${cols.length + (hasScore ? 1 : 0)}">${cols.length ? '所选指标：数值 / 分位' : ''}</th>${showStrat ? '<th colspan="3">三套策略：得分 / 建议</th>' : ''}${showLater ? '<th colspan="3">后来怎样（含分红）</th>' : ''}</tr>`;
+  if (showStrat || showLater) h += `<tr class="grp"><th></th><th colspan="${cols.length + (hasScore ? 1 : 0)}">${cols.length ? `所选指标：数值 / ${indMode() ? '同行业分位' : '分位'}` : ''}</th>${showStrat ? '<th colspan="3">三套策略：得分 / 建议</th>' : ''}${showLater ? '<th colspan="3">后来怎样（含分红）</th>' : ''}</tr>`;
   h += `<tr><th>股票</th>${cols.map(d => `<th><button type="button" data-sort="${d.k}" title="${esc(d.nm + '：' + d.d)}">${esc(shName(d))}<span class="ar">${ar(d.k)}</span></button>${ST.flip.has(d.k) ? '<span class="rv">反过来</span>' : ''}</th>`).join('')}`;
   if (hasScore) h += `<th><button type="button" data-sort="score">平均得分<span class="ar">${ar('score')}</span></button></th>`;
   if (showStrat) h += STRAT.map(s => `<th><button type="button" data-sort="${s.id}" title="${esc(s.inds.map(k => shName(IK[k])).join('、'))}">${s.nm}<span class="ar">${ar(s.id)}</span></button></th>`).join('');
@@ -326,7 +351,7 @@ function renderTable() {
   h += '</tr></thead><tbody>';
   for (const r of rows) {
     const nm = nameOf(r.code);
-    const stk = `<td><div class="stk"><button type="button" data-open="${r.code}" title="展开全部 28 项">${esc(nm)}</button><span class="cd">${esc(showCode(r.code))} ${AH.has(r.code) ? '<span class="tag h">A+H</span>' : r.hk ? '<span class="tag h">港股</span>' : ''}${r.S && r.S.b < LASTT ? ' <span class="tag x">已退市</span>' : ''}</span></div></td>`;
+    const stk = `<td><div class="stk"><button type="button" data-open="${r.code}" title="展开全部 ${IND.length} 项">${esc(nm)}</button><span class="cd">${esc(showCode(r.code))} ${AH.has(r.code) ? '<span class="tag h">A+H</span>' : r.hk ? '<span class="tag h">港股</span>' : ''}${r.S && r.S.b < LASTT ? ' <span class="tag x">已退市</span>' : ''}</span>${indMode() && r.S && !r.off ? secTag(r.S, t) : ''}</div></td>`;
     if (r.hk) {
       const x = r.hk; h += `<tr>${stk}<td class="na" colspan="${nAll - 1}">只在港股上市，这里没有它的逐月数据，不能打分。${X.hk.date.replace(/-/g, '.')} 快照：股价 ${x[2]} 港元，总市值 ${yi(x[3])}港元，市盈率 ${isF(x[5]) ? x[5].toFixed(1) + ' 倍' : '—'}，股息率 ${isF(x[4]) ? x[4].toFixed(2) + '%' : '—'}。</td></tr>`;
       continue;
@@ -350,6 +375,11 @@ function renderTable() {
   const m = stratMatch();
   if (m && hasScore) notes.push(`你勾的四项正好是<b>${m.nm.replace(' ', '策略 ')}</b>，平均得分就是它的打分。${m.id === 'A1' ? `这一天海平面 ${X.sea[t].toFixed(0)}%：${X.sea[t] < 70 ? '低于 70%，分数 ≤65 买入，否则不动' : X.sea[t] < 80 ? '在 70%–80% 之间，>65 卖出，≤45 买入，中间不动' : '在 80% 以上，>45 卖出，其余不动，不买'}。` : m.id === 'A3' ? '≤70 买入，>70 卖出。' : '≤65 买入，>70 卖出，中间不动。'}`);
   if (rows.some(r => r.sc && r.sc.miss)) notes.push('标着“缺”的指标没有数据（比如亏损公司没有市盈率、金融业没有利润含金量），按 50 计入得分。');
+  if (indMode()) {
+    notes.push(`分位按<b>同一个行业</b>（地图上的 30 国）当天的合格公司排：50 就是在同行里居中。三套策略的打分和建议仍按全部A股的分位，因为它们的门槛是按那个口径定的。`);
+    const few = rows.filter(r => r.S && !r.off && r.sc && (s => s < 0 || peersOf(s, t) < EXT.imin)(secOf(r.S, t)));
+    if (few.length) notes.push(`${few.map(r => `<b>${esc(nameOf(r.code))}</b>`).join('、')} 所在的行业当天不足 ${EXT.imin} 家合格公司（或行业未知），没有同行业分位，按 50 计入得分。`);
+  }
   for (const r of rows) {
     const ah = AH.get(r.code); if (!ah) continue;
     const hp = ah[2], ap = ah[3], prem = ap / (hp * X.hk.fx) - 1;
@@ -359,13 +389,13 @@ function renderTable() {
   $('#notes').innerHTML = notes.map(n => `<li>${n}</li>`).join('');
 }
 function detailHTML(S, t) {
-  return `<div class="all">${CATS.map(cat => `<div class="cath">${cat}</div>` + IND.filter(d => d.cat === cat).map(d => { const c = d.cell(S, t), p = pOf(S, d, t); return `<div class="it"><span class="n">${esc(d.nm)}</span><span class="vv">${c.v}</span><span class="pp">${d.pk ? (isF(p) ? `分位 ${Math.round(p)}` : '无分位') : ''}</span></div>`; }).join('')).join('')}</div>`;
+  return `<div class="all">${CATS.map(cat => `<div class="cath">${cat}</div>` + IND.filter(d => d.cat === cat).map(d => { const c = d.cell(S, t), p = pOf(S, d, t, 'all'), q = IPS.has(d.pk) ? IPof(S, d.pk, t) : NaN; return `<div class="it"><span class="n">${esc(d.nm)}</span><span class="vv">${c.v}</span><span class="pp">${d.pk ? (isF(p) ? `分位 ${Math.round(p)}${isF(q) ? ` · 同行 ${q}` : ''}` : '无分位') : ''}</span></div>`; }).join('')).join('')}</div>`;
 }
 function tableText(sep) {
   if (!LAST) return '';
   const { rows, cols, t, hasScore, showStrat, showLater } = LAST, q = s => sep === ',' && /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
   const head = ['股票', '代码', '日期'];
-  cols.forEach(d => { head.push(d.nm); if (d.pk) head.push(d.nm + (ST.flip.has(d.k) ? '·分位（反过来前）' : '·分位')); });
+  cols.forEach(d => { head.push(d.nm); if (d.pk) head.push(d.nm + '·' + pName(d) + (ST.flip.has(d.k) ? '（反过来前）' : '')); });
   if (hasScore) head.push('平均得分');
   if (showStrat) STRAT.forEach(s => head.push(s.nm + '·得分', s.nm + '·建议'));
   if (showLater) ['1个月', '3个月', '1年'].forEach(n => head.push(`此后${n}涨跌%`, `同期大盘%`));
@@ -387,7 +417,7 @@ const PANELS = []; let HOV = null;
 function seriesOf(S) {
   const out = new Float64Array(NW).fill(NaN), view = ST.tview;
   for (let t = S.a; t <= S.b; t++) {
-    if (view === 'score') out[t] = scoreOf(S, t, ST.inds, ST.flip).v;
+    if (view === 'score') { const sc = scoreOf(S, t, ST.inds, ST.flip); out[t] = sc.n && sc.miss === sc.n ? NaN : sc.v; }   // 一项都没有数据的月份不画（不画成 50）
     else { const d = IK[view]; let p = pOf(S, d, t); if (isF(p) && ST.flip.has(view)) p = 100 - p; out[t] = p; }
   }
   return out;
@@ -413,7 +443,7 @@ function chartSVG(ser, w, hgt, o = {}) {
   return { svg: `<svg class="ch" viewBox="0 0 ${w} ${hgt}" height="${hgt}" role="img" aria-label="${esc(o.label || '')}">${s}</svg>`, x, L, R };
 }
 function renderTrend() {
-  const views = [['score', '平均得分']].concat(ST.inds.filter(k => IK[k].pk).map(k => [k, IK[k].nm + ' 的分位']));
+  const views = [['score', '平均得分' + (indMode() ? '（同行业分位）' : '')]].concat(ST.inds.filter(k => IK[k].pk).map(k => [k, IK[k].nm + ' 的' + pName(IK[k])]));
   if (!views.some(v => v[0] === ST.tview)) ST.tview = 'score';
   $('#tview').innerHTML = views.map(([v, n]) => `<option value="${v}"${v === ST.tview ? ' selected' : ''}>${esc(n)}</option>`).join('');
   const gw = $('#tgrid').clientWidth || 900, cols = gw >= 1050 ? 3 : gw >= 640 ? 2 : 1, w = Math.floor((gw - 14 * (cols - 1)) / cols) - 26, hgt = 150;
@@ -435,7 +465,7 @@ function renderTrend() {
   PANELS.forEach(p => { if (!p.sea) p.el = $(`.pnl[data-c="${p.code}"]`); });
   const hkN = ST.codes.filter(c => c.startsWith('HK')).length;
   $('#tnote').innerHTML = [m ? `虚线是${m.nm.replace(' ', '策略 ')}的门槛（${m.th.join('、')}）${m.id === 'A1' ? '：海平面低于 70% 时 ≤65 买入；70%–80% 时 ≤45 买入、>65 卖出；80% 以上 >45 卖出' : m.id === 'A3' ? '：≤70 买入，>70 卖出' : '：≤65 买入，>70 卖出'}。` : '',
-    ST.inds.some(k => IK[k].pk) ? '' : '还没有勾选能计分的指标。', hkN ? `只在港股上市的 ${hkN} 家没有逐月数据，不画走势。` : ''].filter(Boolean).join(' ');
+    ST.inds.some(k => IK[k].pk) ? '' : '还没有勾选能计分的指标。', indMode() ? '分位按同一个行业的合格公司排；三套策略的门槛线只在按全部A股排时画。' : '', hkN ? `只在港股上市的 ${hkN} 家没有逐月数据，不画走势。` : ''].filter(Boolean).join(' ');
   setHover(null);
 }
 function setHover(t) {
@@ -468,7 +498,8 @@ async function runScreen() {
     if (sec >= 0 && M.sec[i] !== sec) continue;
     let s = 0, miss = 0; const parts = [];
     for (const k of scored) {
-      const d = IK[k]; let p = d.pk === 'sea' ? X.seaP[t] : M.P[i * K + PI[d.pk]]; if (p === 255) { p = 50; miss++; }
+      const d = IK[k]; let p = d.pk === 'sea' ? X.seaP[t] : byInd(d, ST.basis) ? M.IP[i * M.KI + IPI[d.pk]] : d.pk in PI ? M.P[i * K + PI[d.pk]] : M.E[d.pk] ? M.E[d.pk][i] : 255;
+      if (p === 255 || p === undefined) { p = 50; miss++; }
       if (ST.flip.has(k)) p = 100 - p; s += p; parts.push(`${shName(d)} ${Math.round(p)}`);
     }
     list.push({ ci: M.ids[i], s: s / scored.length, miss, parts, cap: M.P[i * K + PI.cap] });
@@ -478,8 +509,8 @@ async function runScreen() {
   list.sort((a, b) => a.s - b.s);
   const item = (r, i) => { const c = CO[r.ci], code = c[0], has = ST.codes.includes(code);
     return `<li><span class="rk">${i + 1}</span><span class="nm"><b>${esc(c[1])}</b><span class="cd">${code}</span>${AH.has(code) ? ' <span class="tag h">A+H</span>' : ''}<span class="bd">${esc(r.parts.join(' · '))}${r.miss ? ` · 缺${r.miss}项按50` : ''}</span></span><span class="s">${r.s.toFixed(0)}</span><button type="button" class="add" data-add="${code}"${has || ST.codes.length >= MAXS ? ' disabled' : ''}>${has ? '已在表里' : '加入'}</button></li>`; };
-  $('#zinfo').textContent = `${ymCN(t)}，${nTot.toLocaleString('zh-CN')} 家参与排名`;
-  const how = scored.map(k => shName(IK[k]) + (ST.flip.has(k) ? '（反）' : '')).join(' + ');
+  $('#zinfo').textContent = `${ymCN(t)}，${nTot.toLocaleString('zh-CN')} 家参与排名${indMode() ? '；分位按同行业' : ''}`;
+  const how = scored.map(k => shName(IK[k]) + (ST.flip.has(k) ? '（反）' : '')).join(' + ') + (indMode() ? '，同行业分位' : '');
   if (nTot <= 40) { $('#zres').innerHTML = nTot ? `<div class="zcol"><h3>全部 ${nTot} 家，分数从低到高<small>${how}</small></h3><ol class="zl">${list.map(item).join('')}</ol></div>` : '<p class="small">这个范围里没有公司。</p>'; return; }
   const lo = list.slice(0, 20), hi = list.slice(-20).reverse();
   $('#zres').innerHTML = `<div class="zcols"><div class="zcol"><h3>分数最低的 20 家<small>${how}</small></h3><ol class="zl">${lo.map(item).join('')}</ol></div><div class="zcol"><h3>分数最高的 20 家<small>分位后面的数是各项分位${ST.flip.size ? '（已按“反过来”换算）' : ''}</small></h3><ol class="zl">${hi.map(item).join('')}</ol></div></div>`;
@@ -544,7 +575,8 @@ function init() {
   mo.onchange = () => setT(+mo.value);
   $('#prev').onclick = () => setT(ST.t - 1); $('#next').onclick = () => setT(ST.t + 1);
   let slT = 0; sl.oninput = () => { ST.t = +sl.value; renderDate(); clearTimeout(slT); slT = setTimeout(() => setT(+sl.value), 120); };
-  $('#presets').onclick = e => { const b = e.target.closest('button'); if (!b) return; ST.inds = PRESET[b.dataset.p].slice(); ST.flip.clear(); ST.sort = null; update(); };
+  $('#presets').onclick = e => { const b = e.target.closest('button'); if (!b) return; ST.inds = PRESET[b.dataset.p].slice(); ST.flip.clear(); ST.sort = null; if (/^A/.test(b.dataset.p)) ST.basis = 'all'; update(); };
+  $('#basis').onclick = e => { const b = e.target.closest('button[data-b]'); if (!b || b.dataset.b === ST.basis) return; ST.basis = b.dataset.b; update(); };
   $('#cats').onclick = e => { const b = e.target.closest('[data-k]'); if (!b) return; const k = b.dataset.k; if (ST.inds.includes(k)) { ST.inds = ST.inds.filter(x => x !== k); ST.flip.delete(k); } else ST.inds.push(k); update(); };
   $('#chosen').onclick = e => {
     const f = e.target.closest('[data-flip]'), r = e.target.closest('[data-rmk]');
@@ -587,5 +619,5 @@ function init() {
   update();
 }
 init();
-window.__ks = { getStock, V, P, later, scoreOf };   // 供自动测试核对数字
+window.__ks = { getStock, getMonth, V, P, IPof, pOf, IK, later, scoreOf, ST };   // 供自动测试核对数字
 })();
